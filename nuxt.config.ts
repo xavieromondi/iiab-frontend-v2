@@ -1,4 +1,4 @@
-import Aura from '@primeuix/themes/aura';
+import Material from '@primeuix/themes/material';
 
 export default defineNuxtConfig({
 
@@ -13,7 +13,7 @@ export default defineNuxtConfig({
     primevue: {
         options: {
             theme: {
-                preset: Aura
+                preset: Material
             }
         }
     },
@@ -28,8 +28,8 @@ export default defineNuxtConfig({
         baseURL: '/home/',
     },
 
-    // dev: cors
-    nitro: {
-        cors: true
-    }
+    // //dev: cors
+    // nitro: {
+    //     cors: true
+    // }
 })

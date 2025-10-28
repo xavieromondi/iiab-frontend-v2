@@ -69,21 +69,21 @@
                 <InputIcon>
                   <i class="pi pi-search"/>
                 </InputIcon>
-                <InputText id="search-ip" v-model="filters['global'].value" class="border-round-2xl" fluid/>
+                <InputText id="search-ip" v-model="filters['global'].value" class="border-round-2xl" size="small" fluid/>
               </IconField>
               <!-- /search -->
 
-              <div class="w-7 flex gap-3 justify-content-end">
+              <div class="w-7 pr-2 flex gap-3 justify-content-end">
                 <!-- mode toggle -->
                 <Button :icon="mode==='config' ? 'pi pi-cog' : 'pi pi-th-large'"
-                        :outlined="mode!=='config'" rounded
-                        severity="warn"
+                        :outlined="mode!=='config'" rounded raised
+                        severity="warn" size="small"
                         @click="switchMode()"/>
 
                 <!-- reload -->
                 <Button :loading="is_loading"
-                        icon="pi pi-refresh" outlined rounded
-                        severity="primary"
+                        icon="pi pi-refresh" outlined rounded raised
+                        severity="primary" size="small"
                         @click="loadItems()"/>
               </div>
             </div>
@@ -829,7 +829,7 @@ export default defineComponent({
             {
               field  : 'name',
               name   : 'name',
-              label  : 'school',
+              label  : 'school name',
               "class": "col-12"
             },
 

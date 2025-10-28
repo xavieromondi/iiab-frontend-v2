@@ -1,12 +1,12 @@
 <template>
   <!-- content grid -->
-  <div class="grid m-0 bg-white text-gray-700 fadein animation-duration-500 select-none">
+  <div class="grid m-0 bg-gray-100 text-gray-700 fadein animation-duration-500 select-none">
 
     <!-- left col -->
     <div class="col-12 md:col-6 p-2 md:p-3 lg:p-4">
 
       <!-- categories header -->
-      <div class="grid m-0 border-1 border-gray-200 capitalize">
+      <div class="grid m-0 bg-white border-1 border-gray-200 capitalize">
 
         <div v-for="category in ['subjects', 'classes', 'schools', 'regions']"
              :class="'col-3 pl-3 hover:shadow-2 pointer-cursor' + (category===active_category ? ' bg-orange-600 text-white' : '')"
@@ -34,6 +34,7 @@
               :row-class="rowClass"
               :rows="5"
               sort-field="sessions"
+              :loading="is_loading"
               :sort-order="-1"
               :value="tableData"
               class="border-right-1 border-left-1 border-gray-200 text-xs"
@@ -43,7 +44,8 @@
             <template #header>
               <div class="p-3 md:flex justify-content-between align-items-center">
 
-                <div class="w-full md:w-8 pb-2 lg:py-1 flex align-items-center justify-content-between md:justify-content-start gap-3">
+                <div
+                    class="w-full md:w-8 pb-2 lg:py-1 flex align-items-center justify-content-between md:justify-content-start gap-3">
                   <IconField>
                     <InputIcon>
                       <i class="pi pi-search"/>
@@ -51,12 +53,12 @@
                     <InputText v-model="filters['global'].value" fluid
                                placeholder="Search"
                                class="border-round-2xl"
-                               size=""/>
+                               size="small"/>
                   </IconField>
                   <Button :loading="is_loading"
-                          icon="pi pi-refresh" outlined rounded
+                          icon="pi pi-refresh" outlined rounded raised
                           class="border-1 border-gray-300"
-                          severity="secondary"
+                          severity="secondary" size="small"
                           @click="loadUI"/>
                 </div>
 
@@ -65,7 +67,7 @@
                           :label="active_category==='classes' ? getClassName(activeItem.name) : activeItem.name"
                           class="border-1 border-orange-600 capitalize fadein animation-duration-500"
                           icon="pi pi-times"
-                          icon-pos="right" outlined
+                          icon-pos="right" outlined raised
                           rounded severity="warn" size="small"
                           @click="activeItem=null"/>
                 </div>
@@ -91,8 +93,22 @@
                   {{ getItemNameByID('schools', data.school) }}
                 </div>
 
-                <div class="flex">
-                  <Rating :model-value="3"
+                <!-- rating -->
+                <div v-if="['classes', 'schools', 'subjects'].includes(active_category)" class="flex">
+                  <Rating v-if="active_category==='schools'"
+                          :model-value="getSchoolRating(data.id)"
+                          :stars="5"
+                          class="text-yellow-500 flex gap-1 text-xs"
+                          readonly unstyled/>
+
+                  <Rating v-if="active_category==='classes'"
+                          :model-value="getClassRating(data.id)"
+                          :stars="5"
+                          class="text-yellow-500 flex gap-1 text-xs"
+                          readonly unstyled/>
+
+                  <Rating v-if="active_category==='subjects'"
+                          :model-value="getSubjectRating(data.name)"
                           :stars="5"
                           class="text-yellow-500 flex gap-1 text-xs"
                           readonly unstyled/>
@@ -154,8 +170,8 @@
               <template #body="{data}">
                 <div class="flex gap-3 justify-content-end">
                   <Button :outlined="data!==activeItem"
-                          class="hover:shadow-2"
-                          icon="pi pi-chart-line" rounded
+                          class="hover:shadow-2 border-1 border-gray-300" size="small"
+                          icon="pi pi-chart-line" rounded raised
                           severity="secondary"
                           @click="activeItem=data"/>
                 </div>
@@ -169,7 +185,7 @@
           <div class="grid m-0 surface-100 border-1 border-gray-300 capitalize">
 
             <!-- subject views -->
-            <div class="col-12 md:col-4 lg:col-5 p-0 border-right-1 border-gray-300 text-xs">
+            <div class="col-12 md:col-4 lg:col-5 p-0 flex md:flex-column border-right-1 border-gray-300 text-xs">
 
               <div
                   class="w-full h-8rem lg:pl-3 border-bottom-1 border-gray-300 flex justify-content-center align-items-center fadein animation-duration-1000">
@@ -194,7 +210,6 @@
                   <div class="text-xs">Avg. Subject Views</div>
                 </div>
               </div>
-
 
               <div
                   class="w-full h-8rem lg:pl-3 border-bottom-1 border-gray-300 flex justify-content-center align-items-center fadein animation-duration-1000">
@@ -263,11 +278,8 @@
         </div>
 
         <!-- dates -->
-        <div
-            class="md:w-8 h-3rem md:h-full lg:pr-4 flex align-items-center justify-content-center lg:justify-content-end"
-            @click="$refs.date_popover.toggle($event);">
-          {{ new Date(start_date).toDateString() }} -
-          {{ new Date(end_date).toDateString() }}
+        <div class="md:w-8 p-4 hover:shadow-2" @click="$refs.date_popover.toggle($event);">
+          {{ new Date(start_date).toDateString() }} - {{ new Date(end_date).toDateString() }}
         </div>
 
         <!-- date popup -->
@@ -314,7 +326,7 @@
             <div class="text-center">
               <div class="text-xl font-bold">{{ totalSessions }}</div>
               <div class="text-xs">Total Sessions</div>
-              <div class="text-xs fadein animation-duration-500">{{ active_item_title }}</div>
+              <div class="text-xs fadein animation-duration-500">{{ metric_title }}</div>
             </div>
           </div>
           <!-- /total sessions -->
@@ -325,7 +337,7 @@
             <div class="text-center">
               <div class="text-xl font-bold">{{ avgMinutesPerSession }}</div>
               <div class="text-xs">Avg. minutes / session</div>
-              <div class="text-xs fadein animation-duration-500">{{ active_item_title }}</div>
+              <div class="text-xs fadein animation-duration-500">{{ metric_title }}</div>
             </div>
           </div>
           <!-- /Avg. minutes / session -->
@@ -336,7 +348,7 @@
             <div class="text-center">
               <div class="text-xl font-bold">{{ avgSessionsPerClass }}</div>
               <div class="text-xs">Avg. sessions / class</div>
-              <div class="text-xs fadein animation-duration-500">{{ active_item_title }}</div>
+              <div class="text-xs fadein animation-duration-500">{{ metric_title }}</div>
             </div>
           </div>
           <!-- /Avg. minutes / class -->
@@ -354,7 +366,12 @@
             <div class="text-center">
               <div class="text-2xl font-bold">{{ newUsers }}</div>
               <div class="text-xs">+New Users</div>
-              <div class="text-xs fadein animation-duration-500">{{ active_item_title }}</div>
+              <div class="text-xs fadein animation-duration-500">
+                <template v-if="activeItem && ['schools', 'regions'].includes(active_category)">
+                  {{ activeItem.label || activeItem.name }}
+                </template>
+                <template v-else>Overall</template>
+              </div>
             </div>
           </div>
           <!-- /new users -->
@@ -366,7 +383,7 @@
             <div class="text-center">
               <div class="text-2xl font-bold">{{ dailyUsers }}</div>
               <div class="text-xs">Users / Day</div>
-              <div class="text-xs fadein animation-duration-500">{{ active_item_title }}</div>
+              <div class="text-xs fadein animation-duration-500">{{ metric_title }}</div>
             </div>
           </div>
           <!-- /users per day -->
@@ -378,7 +395,7 @@
             <div class="text-center">
               <div class="text-2xl font-bold">{{ weeklyUsers }}</div>
               <div class="text-xs">Users / Week</div>
-              <div class="text-xs fadein animation-duration-500">{{ active_item_title }}</div>
+              <div class="text-xs fadein animation-duration-500">{{ metric_title }}</div>
             </div>
           </div>
           <!-- /Users / Week -->
@@ -389,7 +406,7 @@
 
 
         <!-- subjects -->
-        <div class="col-12 md:col-4 p-0 bg-gray-100">
+        <div class="col-12 md:col-4 p-0 flex md:flex-column bg-gray-100">
 
           <div
               class="w-full h-8rem lg:pl-3 border-bottom-1 border-gray-300 flex justify-content-center align-items-center fadein animation-duration-1000">
@@ -402,7 +419,7 @@
                     valueColor="lightblue"/>
 
               <div class="text-xs">Avg. Subjects / Session</div>
-              <div class="text-xs">Overall</div>
+              <div class="text-xs">{{ metric_title }}</div>
             </div>
           </div>
 
@@ -416,7 +433,7 @@
                     valueColor="limegreen"/>
 
               <div class="text-xs">Avg. Subjects / User</div>
-              <div class="text-xs">Overall</div>
+              <div class="text-xs">{{ metric_title }}</div>
             </div>
           </div>
 
@@ -431,8 +448,13 @@
                     readonly
                     valueColor="purple"/>
 
-              <div class="text-xs">Subjects / Region</div>
-              <div class="text-xs">Overall</div>
+              <div class="text-xs">Subjects / School</div>
+              <div class="text-xs">
+                <template v-if="activeItem && active_category === 'schools'">
+                  {{ activeItem.name }}
+                </template>
+                <template v-else>Overall</template>
+              </div>
             </div>
           </div>
 
@@ -678,198 +700,332 @@ export default defineComponent({
       return new Date(this.end_date).getTime();
     },
 
-    //get chart display title.
-    active_item_title() {
 
+//////////////////////////////////////////////// CHART DISPLAY.
+    metric_title() {
       if (this.activeItem) {
-        //return title.
-        let title = '';
+        //item name | title.
+        let title = this.activeItem.name || this.activeItem.title;
 
         //active class.
         if (this.active_category === 'classes') {
           title = this.getClassName(this.activeItem.name);
-          if (this.activeItem.school) {
-            title += ' | ' + this.getItemNameByID('schools', this.activeItem.school)
-          }
+          title += ' | ' + this.getItemNameByID('schools', this.activeItem.school)
         }
-        //non-class item
-        else title = this.activeItem.name;
 
         //return.
         return title;
       } //active item.
 
-
       return 'overall';
     },
+//////////////////////////////////////////////// CHART DISPLAY.
 
-//////////////////////////////////////////////// metrics - sessions.
 
+//////////////////////////////////////////////// METRICS - SESSIONS.
     //get total sessions.
     totalSessions() {
-      return (this.activeItem ? (this.activeItem.sessions || 0) : this.sessions.length);
+      if (this.activeItem) return (this.activeItem.sessions || 0);
+      else return this.sessions.length;
     },
 
     //get avg. minutes per session.
     avgMinutesPerSession() {
-      //param check.
-      if (!this.sessions.length) return 0;
+      //sessions check.
+      if (!this.sessions.length) return 0.00;
 
-      let total_time = 0;
-      this.sessions.filter(session => session.entries)
-          .map(session => {
-            Object.keys(session.entries)
-                  .map(entry_name => {
-                    if (session.entries[entry_name].session_total_time) {
-                      total_time += session.entries[entry_name].session_total_time;
-                    }
-                  });
-          });
+      let classes = this.classes;
+
+      ////////////////////// active item.
+      if (this.activeItem) {
+        //active item id cast.
+        const item_id = Number(this.activeItem.id);
+
+        //////////////////// active class.
+        if (this.active_category === 'classes') classes = [this.activeItem];
+
+        //////////////////// active school.
+        else if (this.active_category === 'schools') classes = this.getClassesBySchoolID(item_id);
+
+        //////////////////// active class.
+        else if (this.active_category === 'region') classes = this.getClassesByRegionID(item_id);
+      } ////////////////////// active item.
+
+
+      //compute total minutes.
+      let total_minutes = 0;
+      let class_ids     = [];
+      classes.forEach(class_ => {
+        total_minutes += Number(class_.session_total_time);
+        class_ids.push(Number(class_.id));
+      });
+      if (!total_minutes) return 0.00;
+
+      //sessions.
+      const sessions = this.sessions
+                           .filter(session => class_ids.includes(Number(session.class_)));
+      if (!sessions.length) return 0.00;
 
       //return.
-      return Math.ceil(total_time / this.sessions.length);
+      return (total_minutes / sessions.length).toFixed(2);
     },
 
     //get avg. minutes per session.
     avgSessionsPerClass() {
-      //param check.
+      //sessions & classes check.
       if (!this.sessions.length) return 0;
 
-      let total_time = 0;
-      this.sessions.filter(session => session.entries)
-          .map(session => {
-            Object.keys(session.entries)
-                  .map(entry_name => {
-                    if (session.entries[entry_name].session_total_time) {
-                      total_time += session.entries[entry_name].session_total_time;
-                    }
-                  });
-          });
+      let classes = this.classes;
+
+      if (this.activeItem) {
+        if (this.active_category === 'schools') {
+          classes = this.getClassesBySchoolID(this.activeItem.id);
+        }
+
+        else if (this.active_category === 'regions') {
+          classes = this.getClassesByRegionID(this.activeItem.id);
+        }
+      }
+      if (!classes.length) return 0.00;
+
+      //sessions.
+      const class_ids = classes.map(class_ => Number(class_.id));
+      const sessions  = this.sessions
+                            .filter(session => class_ids.includes(Number(session.class_)));
+      if (!sessions.length) return 0.00;
+
 
       //return.
-      return Math.ceil(total_time / this.classes.length);
+      return (sessions.length / class_ids.length).toFixed(2);
     },
+//////////////////////////////////////////////// METRICS - SESSIONS.
 
-//////////////////////////////////////////////// metrics - users.
-
-    //new users.
+    //new users - overall school & regions.
     newUsers() {
-      const start_time = new Date(this.start_date).getTime();
-      const end_time   = new Date(this.end_date).getTime();
+      //global classes.
+      if (!this.classes.length) return 0;
 
-      let classes = [];
-      //active class.
-      if (this.activeItem && this.active_category === 'classes') classes = [this.activeItem];
+      let classes = this.classes;
 
-      //get school classes.
-      else if (this.activeItem && this.active_category === 'schools') {
-        classes = this.classes.filter(class_ => Number(class_.school) === Number(this.activeItem.id));
+      //active school | region.
+      if (this.activeItem) {
+        if (this.active_category === 'schools') classes = this.getClassesBySchoolID(this.activeItem.id);
+        else if (this.active_category === 'regions') classes = this.getClassesByRegionID(this.activeItem.id);
       }
 
-      //get region classes.
-      else if (this.activeItem && this.active_category === 'regions') {
-        const school_ids = this.schools
-                               .filter(school => Number(school.regions) === Number(this.activeItem.id))
-                               .map(school => Number(school.id));
-
-        classes = this.classes
-                      .filter(class_ => school_ids.includes(Number(class_.school)));
-      }
-
-      //overall classes.
-      else classes = this.classes;
-
-      return classes.filter(class_ => Number(class_.id) >= start_time && Number(class_.id) <= end_time).length;
+      //return.
+      return classes
+          .filter(class_ => Number(class_.id) >= this.start_time && Number(class_.id) <= this.end_time).length;
     },
 
     //get daily users
     dailyUsers() {
-      const start_time = new Date(this.start_date).getTime();
-      const end_time   = new Date(this.end_date).getTime();
+      if (!this.sessions) return 0;
+      let sessions = this.sessions;
 
-      //populate sessions.
-      let sessions = this.getSessions();
+      //days.
+      const days = (this.end_time - this.start_time) / (1000 * 60 * 24);
 
-      //get session count.
-      let userMap = {};
-      sessions
-          .filter(session => Number(session.start_time) >= start_time && Number(session.end_time) <= end_time)
-          .map(session => userMap[session.class_] = 1);
+      //active item.
+      if (this.activeItem) {
+        let classes = [];
 
-      const days = (end_time - start_time) / (1000 * 60 * 24);
-      return Math.ceil(Object.keys(userMap).length / (days));
+        if (this.active_category === 'schools') classes = this.getClassesBySchoolID(this.activeItem.id);
+        else if (this.active_category === 'regions') classes = this.getClassesByRegionID(this.activeItem.id);
+
+        else if (this.active_category === 'subjects') {
+          sessions = this.sessions
+                         .filter(session => session.entries)
+                         .filter(session => session.entries[this.activeItem.name]);
+          if (!sessions.length) return 0;
+
+          //return.
+          return Math.ceil(sessions.length / days);
+        }
+
+        if (!classes.length) return 0;
+
+        //update sessions.
+        const class_ids = classes.map(class_ => Number(class_.id));
+        sessions        = this.getSessionsByClassIDs(class_ids)
+      }
+
+      //no sessions.
+      if (!sessions.length) return 0;
+
+      //return.
+      return Math.ceil(sessions.length / days);
     },
 
-    //get daily users
+    //get weekly users
     weeklyUsers() {
-      //start & end times init.
-      const start_time = new Date(this.start_date).getTime();
-      const end_time   = new Date(this.end_date).getTime();
+      if (!this.sessions) return 0;
+      let sessions = this.sessions;
 
+      //weeks.
+      const weeks = (this.end_time - this.start_time) / (1000 * 60 * 24 * 7);
 
-      //populate sessions.
-      let sessions = this.getSessions();
+      //active item.
+      if (this.activeItem) {
+        let classes = [];
 
+        if (this.active_category === 'schools') classes = this.getClassesBySchoolID(this.activeItem.id);
+        else if (this.active_category === 'regions') classes = this.getClassesByRegionID(this.activeItem.id);
+        else if (this.active_category === 'subjects') {
+          sessions = this.sessions
+                         .filter(session => session.entries)
+                         .filter(session => session.entries[this.activeItem.name]);
+          if (!sessions.length) return 0;
 
-      //get session count.
-      let userMap = {};
-      sessions
-          .filter(session => Number(session.start_time) >= start_time && Number(session.end_time) <= end_time)
-          .map(session => userMap[session.class_] = 1);
+          //return.
+          return Math.ceil(sessions.length / weeks);
+        }
 
-      const weeks = (end_time - start_time) / (1000 * 60 * 24 * 7);
-      return Math.ceil(Object.keys(userMap).length / weeks);
+        if (!classes.length) return 0;
+
+        //update sessions.
+        const class_ids = classes.map(class_ => Number(class_.id));
+        sessions        = this.getSessionsByClassIDs(class_ids)
+      }
+
+      //no sessions.
+      if (!sessions.length) return 0;
+
+      //return.
+      return Math.ceil(sessions.length / weeks);
     },
 
 /////////////////////////////////////////////// metrics - subjects.
 
     //average subjects per session.
     avgSubjectsPerSession() {
-      let subject_count = 0;
-      this.sessions.filter(session => session.entries)
-          .map(session => {
-            subject_count += Object.keys(session.entries).length;
-          });
+      if (!this.sessions.length || !this.classes.length) return 0;
 
-      return Math.ceil(subject_count / this.sessions.length)
+      let sessions = this.sessions;
+      let classes  = this.classes;
+
+      //active item.
+      if (this.activeItem) {
+        //schools.
+        if (this.active_category === 'schools') {
+          classes = this.getClassesBySchoolID(this.activeItem.id);
+        }
+
+        //regions.
+        else if (this.active_category === 'regions') {
+          classes = this.getClassesByRegionID(this.activeItem.id);
+        }
+
+        //classes.
+        else if (this.active_category === 'classes') {
+          //active class.
+          classes = [this.activeItem];
+        } //classes.
+
+        //empty classes.
+        if (!classes.length) return 0;
+
+        //update sessions.
+        const class_ids = classes.map(class_ => Number(class_.id));
+        sessions        = this.getSessionsByClassIDs(class_ids);
+        if (!sessions.length) return 0;
+      }
+
+      //subject count.
+      let subject_count = this.getSessionsSubjectCount(sessions);
+      if (!subject_count) return 0;
+
+      //return.
+      return Math.ceil(subject_count / sessions.length);
     },
 
     //average subjects per class.
     avgSubjectPerClass() {
-      let subject_count = 0;
-      this.sessions.filter(session => session.entries)
-          .map(session => {
-            subject_count += Object.keys(session.entries).length;
-          });
+      if (!this.classes.length) return 0;
 
-      return Math.ceil(subject_count / this.classes.length)
+      //classes.
+      let classes = this.classes;
+
+      //active item.
+      if (this.activeItem) {
+        //schools.
+        if (this.active_category === 'schools') {
+          classes = this.getClassesBySchoolID(this.activeItem.id);
+        }
+
+        //regions.
+        else if (this.active_category === 'regions') {
+          classes = this.getClassesByRegionID(this.activeItem.id);
+        }
+
+        //classes.
+        else if (this.active_category === 'classes') {
+          const class_id = Number(this.activeItem.id);
+          return this.getSessionsSubjectCount(this.getSessionsByClassID(class_id));
+        }
+        //empty classes.
+        if (!classes.length) return 0;
+      }
+
+      //class IDs.
+      const class_ids = classes.map(class_ => Number(class_.id));
+      const sessions  = this.getSessionsByClassIDs(class_ids);
+      if (!sessions.length) return 0;
+
+
+      //get subject count.
+      let subject_count = this.getSessionsSubjectCount(sessions);
+      if (!subject_count) return 0;
+
+      //return.
+      return Math.ceil(subject_count / classes.length);
     },
 
     //average subjects per school.
     avgSubjectPerSchool() {
-      let subject_count = 0;
-      this.sessions.filter(session => session.entries)
-          .map(session => {
-            subject_count += Object.keys(session.entries).length;
-          });
+      if (!this.schools.length || !this.sessions.length) return 0;
 
-      return Math.ceil(subject_count / this.schools.length)
+      //sessions init.
+      let sessions = this.sessions;
+      let schools  = this.schools;
+
+      //active school selected.
+      if (this.active_category === 'schools' && this.activeItem) {
+        sessions = this.getSchoolSessions(this.activeItem.id);
+        schools  = [this.activeItem];
+      } //active school selected.
+
+      //global subjects / school.
+      const subject_count = this.getSessionsSubjectCount(sessions);
+      if (!subject_count) return 0;
+
+      //return.
+      return Math.ceil(subject_count / schools.length);
     },
 
 
 /////////////////////////////////////////////// charts
-
-    //session total.
+    //session total chart.
     sessionTotalChart() {
       //active category items.
       const items           = this[this.active_category].filter(item => item.sessions);
       const active_category = this.active_category;
 
+      //data init.
+      let labels = [];
+      let data   = [];
+      items.map(item => {
+        //labels.
+        const item_name = active_category === 'classes' ? this.getClassName(item.name) : item.name;
+        labels.push(item_name);
+        data.push(item.sessions);
+      });
+
       return {
-        labels  : items.map(item => active_category === 'classes' ? this.getItemNameByID('class_types', item.name) : item.name),
+        labels  : labels,
         datasets: [
           {
-            data           : items.map(item => Number(item.sessions)),
+            data           : data,
             backgroundColor: "rgb(183,33,206)"
           }
         ]
@@ -878,31 +1034,58 @@ export default defineComponent({
 
     //session average chart.
     sessionAvgChart() {
-      //active item.
-      const items = this[this.active_category].filter(item => item.session_avg);
+      //active category items.
+      const items = this[this.active_category]
+          .filter(item => item.subject_avg);
+
+      const active_category = this.active_category;
+
+      //data init.
+      let labels = [];
+      let data   = [];
+      items.map(item => {
+        //labels.
+        const item_name = active_category === 'classes' ? this.getClassName(item.name) : item.name;
+        labels.push(item_name);
+        data.push(item.session_avg);
+      });
 
       return {
-        labels  : items.map(item => this.active_category === 'classes' ? this.getItemNameByID('class_types', item.name) : item.name),
+        labels  : labels,
         datasets: [
           {
-            data           : items.map(item => Number(item.session_avg)),
-            backgroundColor: "rgb(176,255,20)"
+            data           : data,
+            backgroundColor: "rgb(183,33,206)"
           }
         ]
       }
+
     },
 
     //session total.
     subjectsPerSessionChart() {
 
+      //data init.
+      let labels = [];
+      let data   = [];
+
+      const active_category = this.active_category;
+
       //active item.
-      const items = this[this.active_category].filter(item => item.session_avg);
+      this[active_category]
+          .filter(item => item.subject_avg)
+          .forEach(item => {
+            //labels | data.
+            const item_name = active_category === 'classes' ? this.getClassName(item.name) : item.name;
+            labels.push(item_name);
+            data.push(item.subject_avg);
+          });
 
       return {
-        labels  : items.map(item => this.active_category === 'classes' ? this.getItemNameByID('class_types', item.name) : item.name),
+        labels  : labels,
         datasets: [
           {
-            data           : items.map(item => Number(item.session_avg)),
+            data           : data,
             backgroundColor: "rgb(72,188,255)"
           }
         ]
@@ -911,7 +1094,6 @@ export default defineComponent({
 
     //annual data.
     annualData() {
-
       //data init.
       let data = [];
       for (let month = 0; month < 12; month++) data[month] = 0;
@@ -999,164 +1181,163 @@ export default defineComponent({
   },
 
   methods: {
+//////////////////////////////////////////// RATINGS.
+    //get subject rating.
+    getSubjectRating(subject_name) {
+      //no sessions.
+      if (!this.sessions.length) return 0;
 
-    //compute session metrics.
-    computeMetrics() {
+      //calculate subject session rating.
+      const subject_sessions = this.sessions
+                                   .filter(session => session.entries)
+                                   .filter(session => session.entries[subject_name]);
+      if (!subject_sessions.length) return 0;
 
-      this.sessions = this.raw_sessions
-                          .filter(session => Number(session.start_time) >= this.start_time && Number(session.end_time) <= this.end_time)
-
-      //classes.
-      for (const class_ of this.classes) {
-        //get class sessions.
-        const class_sessions      = this.sessions
-                                        .filter(session => Number(session.class_) === Number(class_.id))
-                                        .filter(session => session.start_time && session.end_time);
-        //class total sessions
-        class_.sessions           = class_sessions.length;
-        class_.session_total_time = 0;
-        class_.session_avg        = 0;
-
-        //session total time.
-        class_sessions.forEach(session => {
-          class_.session_total_time += (session.end_time - session.start_time);
-        });
-
-        //session avg time
-        if (class_.sessions) {
-          class_.session_total_time = (class_.session_total_time / (1000 * 60)).toFixed(2);
-          class_.session_avg        = (class_.session_total_time / class_sessions.length).toFixed(2);
-        }
-      }
-
-      //schools.
-      for (const school of this.schools) {
-        //get school classes.
-        const school_classes = this.classes
-                                   .filter(class_ => Number(class_.sessions))
-                                   .filter(class_ => Number(class_.school) === Number(school.id));
-
-        //school sessions.
-        school.classes  = school_classes.length;
-        school.sessions = 0;
-        school_classes.map(class_ => school.sessions += class_.sessions);
-
-        //session total time | session avg time.
-        school.session_total_time = 0;
-        school.session_avg        = 0;
-
-        school_classes.filter(class_ => Number(class_.session_total_time) && Number(class_.session_avg))
-                      .forEach(class_ => {
-                        school.session_total_time += Number(class_.session_total_time);
-                        school.session_avg += Number(class_.session_avg);
-                      });
-
-        //session_total_time | session_avg.
-        if (school.classes) {
-          school.session_total_time = (school.session_total_time / school.classes).toFixed(2);
-          school.session_avg        = (school.session_avg / school.classes).toFixed(2);
-        }
-      }
-
-      //regions.
-      for (const region of this.regions) {
-        //get region schools.
-        const region_schools = this.schools
-                                   .filter(school => Number(school.sessions))
-                                   .filter(school => Number(school.regions) === Number(region.id));
-
-        //region sessions.
-        region.schools  = region_schools.length;
-        region.sessions = 0;
-        region_schools.map(school => region.sessions += school.sessions);
-
-        //session total time | session avg time.
-        region.session_total_time = 0;
-        region.session_avg        = 0;
-
-        region_schools.filter(school => Number(school.session_total_time) && Number(school.session_avg))
-                      .forEach(school => {
-                        region.session_total_time += Number(school.session_total_time);
-                        region.session_avg += Number(school.session_avg);
-                      });
-
-        //session_total_time | session_avg.
-        if (region.schools) {
-          region.session_total_time = (region.session_total_time / region.schools).toFixed(2);
-          region.session_avg        = (region.session_avg / region.schools).toFixed(2);
-        }
-      }
-
-      //subjects.
-      this.subjects  = [];
-      let subjectMap = {};
-
-      //populate subjectMap.
-      this.sessions.filter(session => session.entries)
-          .forEach(session => {
-            const entry_names = Object.keys(session.entries);
-
-            entry_names.forEach(entry_name => {
-              //new entry.
-              if (!subjectMap[entry_name]) {
-                const entry = session.entries[entry_name];
-                if (entry.session_total_time && entry.views) {
-                  subjectMap[entry_name]          = session.entries[entry_name];
-                  subjectMap[entry_name].sessions = 1;
-                }
-              }
-              //update entry.
-              else {
-                //get entry.
-                const entry = session.entries[entry_name];
-                if (entry.session_total_time && entry.views) {
-                  //update total time.
-                  if (!subjectMap[entry_name].session_total_time) subjectMap[entry_name].session_total_time = 0;
-                  subjectMap[entry_name].session_total_time += entry.session_total_time;
-                  subjectMap[entry_name].session_total_time = (Math.ceil(subjectMap[entry_name].session_total_time / (1000 * 60)))
-
-                  //update views.
-                  if (!subjectMap[entry_name].views) subjectMap[entry_name].views = 0;
-                  subjectMap[entry_name].views += entry.views;
-
-                  //update session count.
-                  subjectMap[entry_name].sessions++;
-                }
-              } //update entry.
-
-
-              if (subjectMap[entry_name]) { //minutes per session.
-                subjectMap[entry_name].session_total_time = Math.ceil((subjectMap[entry_name].session_total_time) / (1000 * 60));
-
-                const total_time     = subjectMap[entry_name].session_total_time;
-                const total_sessions = subjectMap[entry_name].sessions;
-
-                //session avg.
-                subjectMap[entry_name].session_avg = (Math.ceil(total_time / total_sessions));
-              }
-
-            });
-          });
-
-      //populate subjects.
-      Object.keys(subjectMap)
-            .map(entry_name => this.subjects.push(subjectMap[entry_name]));
-
-
+      //return rating.
+      return Math.ceil(subject_sessions.length * 5 / this.sessions.length);
     },
 
+    //get class rating.
+    getClassRating(class_id) {
+      //no sessions.
+      if (!this.sessions.length) return 0;
 
+      //calculate class session rating.
+      const class_sessions = this.sessions.filter(session => Number(session.class_) === Number(class_id));
+      if (!class_sessions.length) return 0;
+
+      //return rating.
+      return Math.ceil(class_sessions.length * 5 / this.sessions.length);
+    },
+
+    //get school rating.
+    getSchoolRating(school_id) {
+      //no sessions.
+      if (!this.sessions.length) return 0;
+
+      //calculate school session rating.
+      const school_sessions = this.sessions.filter(session => Number(session.school) === Number(school_id));
+      if (!school_sessions.length) return 0;
+
+      //return rating.
+      return Math.ceil(school_sessions.length * 5 / this.sessions.length);
+    },
+//////////////////////////////////////////// RATINGS.
+
+
+//////////////////////////////////////////// CLASSES.
+    //get classname based on class_type_id || class name.
+    getClassName(class_type_id) {
+      const class_type = this.class_types.find(class_type => Number(class_type.id) === Number(class_type_id));
+      return class_type ? class_type.name : '-';
+    },
+
+    //get classes based on school id.
+    getClassesBySchoolID(school_id) {
+      if (!school_id) return [];
+
+      //cast.
+      school_id = Number(school_id);
+
+      //return.
+      return this.classes
+                 .filter(class_ => Number(class_.school) === school_id);
+    },
+
+    //get classes based on region id.
+    getClassesByRegionID(region_id) {
+      if (!region_id) return [];
+
+      //cast.
+      region_id = Number(region_id);
+
+      //fetch schools ids.
+      const school_ids = this.getSchool_IDSByRegionID(region_id);
+
+      //return.
+      return this.classes
+                 .filter(class_ => school_ids.includes(Number(class_.school)));
+    },
+//////////////////////////////////////////// CLASSES.
+
+
+//////////////////////////////////////////// SESSIONS.
+    //get sessions from class id.
+    getSessionsByClassID(class_id) {
+      if (!class_id) return [];
+
+      //cast.
+      class_id = Number(class_id);
+
+      //return.
+      return this.sessions.filter(session => Number(session.class_) === class_id)
+    },
+
+    //get sessions by class ids.
+    getSessionsByClassIDs(class_ids) {
+      if (!class_ids) return [];
+
+      return this.sessions
+                 .filter(session => class_ids.includes(Number(session.class_)));
+    },
+
+    //get sessions filtered by active category.
+    getSessions(category_name = this.active_category, item_id) {
+
+      //no active item.
+      if (!this.activeItem && !item_id) return this.sessions;
+
+      //cast | set default active item id.
+      if (item_id) item_id = Number(item_id);
+      else item_id = Number(this.activeItem.id);
+
+      /////////// ACTIVE SCHOOL.
+      if (category_name === 'schools') {
+        return this.sessions.filter(session => Number(session.school) === item_id);
+      }
+
+      /////////// ACTIVE CLASS.
+      else if (category_name === 'classes') {
+        return this.sessions.filter(session => Number(session.class_) === item_id);
+      }
+
+      /////////// ACTIVE SUBJECT.
+      else if (category_name === 'subjects') return this.getSubjectSessions(this.activeItem.name);
+
+      /////////// ACTIVE REGION.
+      else if (category_name === 'regions') {
+        const region_id  = Number(this.activeItem.id);
+        const school_ids = this.getSchool_IDSByRegionID(region_id);
+        return this.sessions
+                   .filter(session_ => school_ids.includes(Number(session_.school)));
+      }
+
+      //return.
+      return [];
+    },
+
+    //get session subject count.
+    getSessionsSubjectCount(sessions = this.sessions) {
+      if (!sessions.length) return 0;
+
+      let subjectMap = {};
+      sessions.filter(session => session.entries)
+              .map(session => {
+                Object.keys(session.entries).forEach(subject_name => {
+                  subjectMap[subject_name] = 1;
+                })
+              });
+
+      //return count.
+      return Object.keys(subjectMap).length;
+    },
+//////////////////////////////////////////// SESSIONS.
+
+
+//////////////////////////////////////////// ITEMS.
     //get item count.
     getItemCount(cat_name) {
       return this[cat_name].length;
-    },
-
-
-    //get className.
-    getClassName(class_type_id) {
-      const class_type = this.class_types.find(class_type => Number(class_type.id) === Number(class_type_id));
-      if (class_type) return class_type.name;
-      else return '-';
     },
 
 
@@ -1171,59 +1352,60 @@ export default defineComponent({
       //return.
       return item ? item.name : '-';
     },
+//////////////////////////////////////////// ITEMS.
 
 
-    //get sessions filtered by active category..
-    getSessions() {
-      //populate sessions.
-      let sessions = [];
+//////////////////////////////////////////// SCHOOLS.
+    //get region school ids.
+    getSchool_IDSByRegionID(region_id) {
+      //region ID check.
+      if (!region_id) return [];
 
-      //session filter by active school.
-      if (this.activeItem && this.active_category === 'schools') {
-        sessions = this.sessions.filter(session_ => Number(session_.school) === Number(this.activeItem.id));
-      }
-      //session filter by active class.
-      else if (this.activeItem && this.active_category === 'classes') {
-        sessions = this.sessions.filter(session_ => Number(session_.class_) === Number(this.activeItem.id));
-      }
-      //session filter by active region.
-      else if (this.activeItem && this.active_category === 'regions') {
-        const region_id  = Number(this.activeItem.id);
-        const school_ids = this.schools.filter(school => Number(school.regions) === region_id)
-                               .map(school => Number(school.id));
-        sessions         = this.sessions
-                               .filter(session_ => school_ids.includes(Number(session_.school)));
-      }
-      //overall sessions.
-      else sessions = this.sessions
+      //cast.
+      region_id = Number(region_id);
 
-      return sessions;
+      //return.
+      return this.schools.filter(school => Number(school.regions) === region_id)
+                 .map(school => Number(school.id));
     },
 
+    //get school sessions.
+    getSchoolSessions(school_id) {
+      if (!school_id) return [];
 
-    //table row style.
-    rowClass(data) {
-      if (this.activeItem === data) return 'bg-orange-600 text-white font-bold';
+      //cast.
+      school_id       = Number(school_id);
+      const classes   = this.getClassesBySchoolID(school_id);
+      const class_ids = classes.map(class_ => Number(class_.id));
+      if (!class_ids.length) return [];
+
+      //return.
+      return this.sessions.filter(session => class_ids.includes(Number(session.class_)));
     },
+//////////////////////////////////////////// SCHOOLS.
 
 
-    //update active period.
-    updatePeriod() {
+//////////////////////////////////////////// GLOBAL.
+    //load UI.
+    async loadUI() {
+      //UI reset.
+      this.activeItem = null;
+
+      //set dates.
+      const current_month = new Date().getMonth() + 1;
+      const current_year  = new Date().getFullYear();
+      this.start_date     = new Date(current_year, current_month - 1, 1);
+      this.end_date       = new Date(current_year, current_month, 0);
+
+      //fetch categories.
+      for (const cat_name of ['sessions', 'regions', 'subjects', 'schools', 'classes', 'class_types']) {
+        if (cat_name === 'sessions') this.raw_sessions = await this.loadItems(cat_name)
+        else this[cat_name] = await this.loadItems(cat_name)
+      }
+
+      //compute metrics.
       this.computeMetrics();
-      this.notify('period', 'active period updated', 'info');
     },
-
-
-    //notify.
-    notify(title, details, severity) {
-      this.$toast.add({
-        severity: severity || 'info',
-        summary : title || 'Update',
-        detail  : details || 'Successful',
-        life    : 2000
-      });
-    },
-
 
     //loadItems.
     async loadItems(cat_name) {
@@ -1244,29 +1426,197 @@ export default defineComponent({
       }
     },
 
+    //compute session metrics.
+    computeMetrics() {
+      //sessions time filter.
+      this.sessions = this.raw_sessions
+                          .filter(session => Number(session.start_time) >= this.start_time && Number(session.end_time) <= this.end_time)
 
-    //load UI.
-    async loadUI() {
+      //classes.
+      for (const class_ of this.classes) {
+        //session data init.
+        class_.session_total_time = 0;
+        class_.session_avg        = 0;
 
-      //UI reset.
-      this.activeItem = null;
+        //get class sessions.
+        const class_sessions = this.getSessions('classes', class_.id);
+        class_.sessions      = class_sessions.length;
+        if (!class_.sessions) continue;
 
-      //set dates.
-      const current_month = new Date().getMonth() + 1;
-      const current_year  = new Date().getFullYear();
-      this.start_date     = new Date(current_year, current_month - 1, 1);
-      this.end_date       = new Date(current_year, current_month, 0);
+        //subject avg.
+        const subject_count = this.getSessionsSubjectCount(class_sessions);
+        if (subject_count) class_.subject_avg = (subject_count / class_.sessions).toFixed(2);
 
-      //fetch categories.
-      for (const cat_name of ['sessions', 'regions', 'subjects', 'schools', 'classes', 'class_types']) {
-        if (cat_name === 'sessions') this.raw_sessions = await this.loadItems(cat_name)
-        else this[cat_name] = await this.loadItems(cat_name)
+        //session total time.
+        class_sessions.forEach(session => {
+          class_.session_total_time += (session.end_time - session.start_time);
+        });
+        if (!class_.session_total_time) continue;
+
+        //session_total_time | session_avg.
+        class_.session_total_time = (class_.session_total_time / (1000 * 60)).toFixed(2);
+        class_.session_avg        = (class_.session_total_time / class_.sessions).toFixed(2);
       }
 
-      //compute metrics.
-      this.computeMetrics();
+      //schools.
+      for (const school of this.schools) {
+        //session total time | session avg time.
+        school.sessions           = 0;
+        school.session_total_time = 0;
+        school.session_avg        = 0;
+        school.subject_avg        = 0;
 
-    }
+        //school id | get school classes..
+        const school_id      = Number(school.id);
+        const school_classes = this.classes.filter(class_ => Number(class_.school) === school_id);
+        school.classes       = school_classes.length;
+        if (!school_classes.length) continue;
+
+
+        //compute session_total_time | session_avg | sessions.
+        school_classes.forEach(class_ => {
+          school.sessions += class_.sessions;
+          school.session_total_time += Number(class_.session_total_time);
+          school.session_avg += Number(class_.session_avg);
+          school.subject_avg += Number(class_.subject_avg);
+        });
+
+        //session_total_time | session_avg.
+        school.session_total_time = (school.session_total_time / school.classes).toFixed(2);
+        school.session_avg        = (school.session_avg / school.classes).toFixed(2);
+
+
+        //subject avg.
+        if (!school.subject_avg) continue;
+        school.subject_avg = (school.subject_avg / school.classes).toFixed(2);
+      }
+
+      //regions.
+      for (const region of this.regions) {
+        //session total time | session avg time.
+        region.session_total_time = 0;
+        region.session_avg        = 0;
+        region.subject_avg        = 0;
+        region.sessions           = 0;
+
+        //get region schools.
+        const region_schools = this.schools
+                                   .filter(school => Number(school.regions) === Number(region.id));
+        region.schools       = region_schools.length;
+        if (!region.schools) continue;
+
+        //sessions | total_time | session_avg.
+        region_schools.forEach(school => {
+          region.sessions += school.sessions
+          region.session_total_time += Number(school.session_total_time);
+          region.session_avg += Number(school.session_avg);
+          region.subject_avg += Number(school.subject_avg);
+        });
+
+        //session_total_time | session_avg.
+        region.session_total_time = (region.session_total_time / region.schools).toFixed(2);
+        region.session_avg        = (region.session_avg / region.schools).toFixed(2);
+
+
+        //subject avg.
+        if (!region.subject_avg) continue;
+        region.subject_avg = (region.subject_avg / region.schools).toFixed(2);
+      }
+
+
+      //subjects.
+      this.subjects  = [];
+      let subjectMap = {};
+
+      //populate subjectMap.
+      this.sessions.filter(session => session.entries)
+          .forEach(session => {
+            //get entry names.
+            const entry_names = Object.keys(session.entries);
+            entry_names.forEach(entry_name => {
+              //new entry.
+              if (!subjectMap[entry_name]) {
+                subjectMap[entry_name]          = session.entries[entry_name];
+                subjectMap[entry_name].sessions = 1;
+              } //new entry.
+
+              //update entry.
+              else {
+                //entry session increment.
+                subjectMap[entry_name].sessions++;
+
+                //get entry.
+                const entry = session.entries[entry_name];
+                if (entry.session_total_time && entry.views) {
+                  //update total time.
+                  if (!subjectMap[entry_name].session_total_time) subjectMap[entry_name].session_total_time = 0;
+                  subjectMap[entry_name].session_total_time += Math.ceil(entry.session_total_time * (1000 * 60));
+
+                  //update views.
+                  if (!subjectMap[entry_name].views) subjectMap[entry_name].views = 0;
+                  subjectMap[entry_name].views += entry.views;
+                } //entry.
+              } //update entry.
+
+              //minutes per session.
+              subjectMap[entry_name].session_total_time = Math.ceil((subjectMap[entry_name].session_total_time) / (1000 * 60));
+
+              const total_time     = subjectMap[entry_name].session_total_time;
+              const total_sessions = subjectMap[entry_name].sessions;
+
+              //session avg.
+              subjectMap[entry_name].session_avg = (Math.ceil(total_time / total_sessions).toFixed(2));
+            });
+          });
+
+      //populate subjects.
+      Object.keys(subjectMap)
+            .map(entry_name => this.subjects.push(subjectMap[entry_name]));
+    },
+
+    //notify.
+    notify(title, details, severity) {
+      this.$toast.add({
+        severity: severity || 'info',
+        summary : title || 'Update',
+        detail  : details || 'Successful',
+        life    : 2000
+      });
+    },
+//////////////////////////////////////////// GLOBAL.
+
+
+//////////////////////////////////////////// SUBJECTS.
+    //get subject sessions.
+    //get subject sessions.
+    getSubjectSessions(subject_name) {
+      //subject name check.
+      if (!subject_name) return [];
+
+      //return subject sessions.
+      return this.sessions
+                 .filter(session_ => session_.entries)
+                 .filter(session_ => session_.entries[subject_name]);
+    },
+
+//////////////////////////////////////////// SUBJECTS.
+
+
+//////////////////////////////////////////// PERIOD.
+    //update active period.
+    updatePeriod() {
+      this.computeMetrics();
+      this.notify('period', 'active period updated', 'info');
+    },
+//////////////////////////////////////////// PERIOD.
+
+
+//////////////////////////////////////////// TABLE DISPLAY.
+    //table row style.
+    rowClass(data) {
+      if (this.activeItem === data) return 'bg-orange-600 text-white font-bold';
+    },
+//////////////////////////////////////////// TABLE DISPLAY.
   },
 
   async beforeMount() {

@@ -1,23 +1,20 @@
 <template>
-
   <div class="grid m-0 h-screen bg-white text-gray-700 select-none">
 
     <!-- Left column -->
     <div aria-label="Educational learning environment"
-         class="hidden md:col-5 md:flex flex-column justify-content-end"
-         role="img" style="background-image: url('login-image-2.jpg'); background-size: cover">
+         class="hidden md:col-5 md:flex flex-column justify-content-end bg-cover"
+         role="img" style="background-image: url('login-image.jpg');">
 
       <!-- Heading -->
-      <div class="lg:h-3rem pl-4 flex align-items-start">
-        <h1 class="text-white font-bold uppercase text-4xl m-0">
-          Let's Learn!
-        </h1>
-      </div>
+      <h1 class="m-0 p-4 text-white font-bold uppercase text-4xl">
+        Let's Learn!
+      </h1>
       <!-- /Heading -->
 
 
       <!-- Company information footer -->
-      <footer class="h-4rem pl-4 text-xs text-gray-300">
+      <footer class="p-4 text-xs text-gray-300">
 
         <div aria-level="2" class="font-bold" role="heading">
           AHAINNOVATE Limited.
@@ -42,18 +39,18 @@
     <div class="col-12 md:col-7 capitalize">
 
       <!-- admin toggle -->
-      <div class="h-10rem lg:h-4rem p-3 lg:p-2 flex align-items-start justify-content-end">
+      <div class="p-3 text-right">
         <ToggleSwitch id="admin-toggle" v-model="admin"/>
       </div>
       <!-- /admin toggle -->
 
 
       <!-- form container -->
-      <div class="lg:h-30rem flex justify-content-center align-items-center">
-        <div class="w-8 lg:w-4">
+      <div class="flex justify-content-center">
+        <div class="w-8 lg:w-4 text-center">
 
           <!-- header -->
-          <div class="h-4rem lg:h-6rem flex align-items-center justify-content-center">
+          <div class="py-3 text-center">
             <img alt="Access Hub Africa logo"
                  class="h-2rem lg:h-3rem"
                  role="img"
@@ -63,17 +60,18 @@
 
 
           <!-- login header -->
-          <div class="flex flex-column align-items-center">
-            <Button
-                :class="`${school && class_ ? 'border-none bg-green-600 text-white' : 'bg-gray-300 border-gray-700 text-gray-700'} shadow-1`"
-                :loading="is_loading"
-                :outlined="! (school && class_)"
-                aria-label="Secure login Status"
-                icon="pi pi-lock"
-                rounded
-                @click="fetchSchools(); fetchClassTypes()"/>
-
-            <span class="sr-only py-2">
+          <div class="py-3">
+            <div>
+              <Button
+                  :class="`border-none ${school && class_ ? 'border-none bg-green-600 text-white' : 'bg-gray-100 text-gray-700'}`"
+                  :loading="is_loading"
+                  :outlined="! (school && class_)"
+                  aria-label="Secure login Status"
+                  icon="pi pi-lock"
+                  rounded raised
+                  @click="fetchSchools(); fetchClassTypes()"/>
+            </div>
+            <span class="py-3">
               {{ admin ? 'admin' : 'user' }} login
             </span>
           </div>
@@ -126,7 +124,7 @@
                 </template>
 
                 <!-- Empty Classes -->
-                <div v-else class="text-xs text-center fadein animation-duration-2000">
+                <div v-else-if="!is_loading" class="text-xs text-center fadein animation-duration-2000">
                   No Classes Available
                 </div>
               </div>
@@ -194,17 +192,11 @@
     <!-- /right col -->
 
   </div>
-
 </template>
 
 
 <script setup lang="js">
-useState('session', () => {
-  return {
-    school: null,
-    class_: null
-  }
-});
+useState('admin', () => null);
 </script>
 
 
@@ -254,7 +246,6 @@ export default defineComponent({
   },
 
   methods: {
-
     //global auth.
     async login() {
       if (this.admin) await this.adminLogin();
@@ -276,9 +267,7 @@ export default defineComponent({
         this.is_loading = false;
 
         //session initialize error.
-        if (res.error) {
-          this.notify('Session Error', res.error, 'warn');
-        }
+        if (res.error) this.notify('Session Error', res.error, 'warn');
 
         //initiate session.
         else if (res.data) {
@@ -290,6 +279,8 @@ export default defineComponent({
         //ui update.
         useState('ui').value = 'learn';
       }
+
+          //user login error.
       catch (e) {
         //notify | stop loading.
         this.notify('Login error', 'Sorry, unable to login', 'warn');
@@ -301,9 +292,6 @@ export default defineComponent({
     async adminLogin() {
       //params check.
       if (!this.username || !this.password) return;
-
-      //disable session for admin.
-      useState('session').value = null;
 
       //login attempt.
       try {
@@ -323,30 +311,25 @@ export default defineComponent({
         if (res.success) {
           //disable session tracking.
           useState('session').value = null;
+          useState('admin').value   = this.username;
 
-          //notify.
-          this.notify(res.success, '', 'success');
-
-          //set admin name.
-          useState('admin', () => this.username);
-          //set UI.
+          //set registration UI | notify.
           useState('ui').value = 'registration';
-
+          this.notify(res.success, '', 'success');
         }
 
         //server login error.
-        else {
+        else if (res.error) {
           this.login_error = "Unable to login, please again later.";
           this.notify('Login Error, ', res.error, 'warn');
         }
-      }
 
-      //client login error.
+      } //login.
+
+          //client login error.
       catch (e) {
         //stop load.
-        this.is_loading = false;
-
-        //notify.
+        this.is_loading  = false;
         this.login_error = "Wrong username / password";
         this.notify('Login Error, ', 'sorry, server offline', 'warn');
       }
@@ -399,21 +382,28 @@ export default defineComponent({
     },
 
 
+    resetSession() {
+      useState('session').value = {
+        school: null,
+        class_: null,
+        admin : null,
+        data  : null
+      }
+    },
+
     //generate class names.
     getClassOptions() {
       return this.classes.map(class_ => {
         //fetch class type data.
-        const class_type = this.class_types.find(class_type => class_type.id === class_.name);
+        const class_type = this.class_types.find(class_type => Number(class_type.id) === Number(class_.name));
 
         //push class data.
         if (class_type) return {
           name: class_type.name,
           id  : class_.id
         }
-
       });
     },
-
 
     //notify.
     notify(title, details, severity) {
@@ -427,13 +417,18 @@ export default defineComponent({
   },
 
   async beforeMount() {
+    //reset session.
+    this.resetSession();
+
     await this.fetchSchools();
     if (this.schools.length) await this.fetchClassTypes();
   },
 
   async mounted() {
-    //session reset.
-    if (useState('logout').value) useState('session').value = {};
+    if (useState('logout').value) {
+      this.resetSession();
+      useState('logout').value = null;
+    }
   }
 
 })
