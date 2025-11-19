@@ -1,54 +1,48 @@
-import {readdirSync, readFileSync, writeFileSync} from 'fs';
-import {join} from "path";
+// modules init
+const express = require("express");
+const nodemailer = require("nodemailer");
 
+// server init
+const app = express();
+app.use(express.json());
 
-export default defineEventHandler(async (event) => {
+// mail settings (load from env)
+const user_auth = {
+	user: process.env.MAIL_USER,
+	pass: process.env.MAIL_PASS
+};
 
-	//directory.
-	const dir = './server/api/sessions/sessions-data';
+// POST /send
+app.post("/send", async (req, res) => {
+	const { email, subject, message } = req.body;
 
-	// get users.
-	if (event.method === 'GET') {
-		//fetch all user files.
-		let session_files = readdirSync(dir);
+	if (!email || !subject || !message) {
+		return res.status(400).json({ error: "Missing fields" });
+	}
 
-		//return users.
-		return session_files.map(user => {
-			const filePath = join(dir, user);
-			return JSON.parse(readFileSync(filePath, 'utf8'));
+	try {
+		const transporter = nodemailer.createTransport({
+			service: "gmail",
+			auth: user_auth
 		});
-	} ///get users.
 
+		const info = await transporter.sendMail({
+			from: user_auth.user,
+			to: "info@accesshub-africa.com",
+			subject: `Website Enquiry | ${subject} | ${email}`,
+			text: message
+		});
 
-	// save session file
-	else if (event.method === 'POST') {
-		//get params validate.
-		const body = await readBody(event);
-		if (!body.class_ || !body.school) return {
-			error: "Missing Credentials"
-		};
+		res.json({
+			success: true,
+			messageId: info.messageId
+		});
 
-		//session start time.
-		if (!body.start_time) body.start_time = new Date().getTime();
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({ error: "Email failed" });
+	}
+});
 
-		//build file name.
-		const filename = `${body.class_}_${body.school}_${body.start_time}.json`;
-
-		//write file.
-		try {
-			writeFileSync(`${dir}/${filename}`, JSON.stringify(body, null, 2));
-			return {
-				success: "Session Started",
-				data   : body
-			};
-		}
-		catch (e) {
-			return {
-				error: "Unable to start session"
-			};
-		}
-	} //save session file.
-
-
-	return null;
-})
+// server start
+app.listen(3000, () => console.log("Server running on port 3000"));

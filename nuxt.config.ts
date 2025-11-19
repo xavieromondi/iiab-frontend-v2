@@ -6,9 +6,7 @@ export default defineNuxtConfig({
 
     ssr: false,
 
-    modules: [
-        '@primevue/nuxt-module'
-    ],
+    modules: ['@primevue/nuxt-module', '@nuxt/fonts', '@nuxt/image'],
 
     primevue: {
         options: {
@@ -16,6 +14,10 @@ export default defineNuxtConfig({
                 preset: Material
             }
         }
+    },
+
+    fonts: {
+        provider: "local"
     },
 
     css: [
@@ -28,8 +30,4 @@ export default defineNuxtConfig({
         baseURL: '/home/',
     },
 
-    // //dev: cors
-    // nitro: {
-    //     cors: true
-    // }
 })

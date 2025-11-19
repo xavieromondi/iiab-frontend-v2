@@ -15,7 +15,7 @@
 
     <!-- thumbnail -->
     <img :alt="title_"
-         :src="getThumbnail(title_)"
+         :src="useThumbnail(title_)"
          class="w-6 h-full border-round border-1 border-white shadow-2"/>
     <!-- /thumbnail -->
 
@@ -24,36 +24,12 @@
 
 
 <script lang="js">
+
 export default defineComponent({
   name : "zim-card",
   props: ['title_', 'rating_', 'progress_', 'thumbnail_', 'link_'],
   data() {
     return {}
   },
-
-  computed: {},
-
-  methods: {
-    getThumbnail(title_) {
-
-      const subject_title = title_.toLowerCase();
-
-      //specific subjects.
-      if (subject_title.includes('computer') || subject_title.includes('technology')) return 'technology.jpg';
-      else if (subject_title.includes('english') || subject_title.includes('grammar')) return 'english.jpg'
-      else if (subject_title.includes('chemistry') || subject_title.includes('lab')) return 'science.jpg';
-      else if (subject_title.includes('math') || subject_title.includes('calculat')) return 'math.jpg';
-      else if (subject_title.includes('christ') || subject_title.includes('church')) return 'church.jpg';
-      else if (subject_title.includes('swahili') || subject_title.includes('swahili')) return 'swahili.jpg';
-      else if (subject_title.includes('geograp') || subject_title.includes('environ') || subject_title.includes('earth')) return 'nature.jpg';
-      else if (subject_title.includes('electr') || subject_title.includes('engineer')) return 'electronics.jpg';
-      else if (subject_title.includes('agricul') || subject_title.includes('hygiene') || subject_title.includes('nutrition')) return 'food.jpg';
-      else if (subject_title.includes('science')) return 'science.jpg';
-
-      //default image.
-      return 'social.jpg'
-    }
-  }
-
 })
 </script>

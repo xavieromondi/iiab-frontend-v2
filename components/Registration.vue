@@ -12,7 +12,7 @@
         <!-- management mode -->
         <template v-if="mode==='management'">
           <div v-for="(entity_, ix) in entities.filter(item => !item.config)"
-               :class="`col-3 h-4rem pl-3 flex align-items-center hover:shadow-2 lg:border-top-none ${ix>1 ? 'border-top-1 border-gray-200' : ''} ${ix===1 ? 'lg:border-right-1 border-gray-200' : ''} ${ [0, 2].includes(ix) ? 'border-right-1 border-gray-200' : ''}  ${entity===entity_ ? 'bg-orange-600 text-white' : ''}`"
+               :class="`col h-4rem pl-3 flex align-items-center hover:shadow-2 lg:border-top-none ${ix>1 ? 'border-top-1 border-gray-200' : ''} ${ix===1 ? 'lg:border-right-1 border-gray-200' : ''} ${ [0, 2].includes(ix) ? 'border-right-1 border-gray-200' : ''}  ${entity===entity_ ? 'bg-orange-600 text-white' : ''}`"
                @click="switchEntity(entity_)">
 
             <div>
@@ -69,7 +69,8 @@
                 <InputIcon>
                   <i class="pi pi-search"/>
                 </InputIcon>
-                <InputText id="search-ip" v-model="filters['global'].value" class="border-round-2xl" size="small" fluid/>
+                <InputText id="search-ip" v-model="filters['global'].value" class="border-round-2xl" size="small"
+                           fluid/>
               </IconField>
               <!-- /search -->
 
@@ -285,7 +286,6 @@
                     :options="getEntityByName(prop.parent_relation).data" filter
                     fluid option-label="name" option-value="id"/>
 
-
             <!-- relative entity single relation selection -->
             <Select v-else-if="prop.single_relation"
                     :id="prop.field"
@@ -296,13 +296,11 @@
                     option-label="name"
                     option-value="id"/>
 
-
             <!-- entity prop options list -->
             <Select v-else-if="prop.options"
                     :id="prop.field"
                     v-model="entity.active[prop.name]"
                     :options="prop.options" fluid/>
-
 
             <!-- multiple relation selection -->
             <MultiSelect v-else-if="prop.list && prop.multiple"
@@ -326,7 +324,6 @@
                       v-model="entity.active[prop.field]"
                       autocomplete="off"
                       binary fluid size="large"/>
-
 
             <!-- number | password | text -->
             <InputText v-else
@@ -532,14 +529,29 @@ export default defineComponent({
               "class"        : "col-12",
             },
 
-            //class subjects.
+            //boys.
             {
-              name    : 'subjects',
-              field   : "subjects",
-              list    : "subjects",
-              label   : "subjects",
-              "class" : "col-12",
-              multiple: true
+              field: "boys",
+              name : 'boys',
+              label: 'boys',
+              type : "number"
+            },
+
+            //girls.
+            {
+              field: "girls",
+              name : 'girls',
+              label: 'girls',
+              type : "number"
+            },
+
+            //total.
+            {
+              field  : "total",
+              name   : 'total',
+              label  : 'total',
+              type   : "number",
+              no_edit: 1
             },
 
             //class details.
@@ -638,93 +650,6 @@ export default defineComponent({
           data  : []
         },
 
-        //pupils.
-        {
-          active: {
-            id: null
-          },
-          parent: "schools",
-          icon  : "pi pi-user",
-          name  : "pupils",
-          label : "pupils",
-          props : [
-            //parent props.
-            {
-              field          : "school",
-              name           : 'school',
-              parent_relation: "schools",
-              "class"        : "col-12",
-              no_tbl         : 1,
-            },
-
-            //std props.
-            {
-              field: "pupil_id",
-              name : 'pupil_id',
-              label: 'pupil ID',
-            },
-
-            //pupil name.
-            {
-              field: "name",
-              name : 'name',
-              label: 'name'
-            },
-
-            //class relation.
-            {
-              field          : "class",
-              label          : "class",
-              name           : "class",
-              single_relation: "classes",
-            },
-
-            //pupil age.
-            {
-              field : "age",
-              name  : 'age',
-              label : 'age',
-              number: 1
-            },
-
-            //pupil subjects.
-            {
-              field   : "subjects",
-              name    : 'subjects',
-              list    : "subjects",
-              label   : "subjects",
-              "class" : "col-12",
-              multiple: true
-            },
-
-            //pupil disability / accessibility.
-            {
-              field   : "accessibility",
-              checkbox: 1,
-              no_tbl  : 1,
-              name    : 'accessibility'
-            },
-
-            //pupil gender.
-            {
-              field  : "gender",
-              name   : 'gender',
-              label  : 'gender',
-              options: ['male', 'female']
-            },
-
-            //pupil details.
-            {
-              field  : 'details',
-              name   : 'details',
-              "class": "col-12",
-              no_tbl : 1
-            },
-          ],
-          data  : []
-        },
-
-
         //config types.
         //class types.
         {
@@ -773,47 +698,6 @@ export default defineComponent({
           ]
         },
 
-        //subjects.
-        {
-          active : {
-            id: null
-          },
-          icon   : "pi pi-book",
-          name   : "subjects",
-          label  : "subjects",
-          props  : [
-            {
-              field  : "name",
-              name   : 'name',
-              label  : "subject name",
-              "class": "col-12"
-            },
-            {
-              field  : 'details',
-              name   : 'details',
-              "class": "col-12",
-              no_tbl : 1
-            },
-          ],
-          config : 1,
-          metrics: {
-            //session metrics.
-            sessions       : 20,
-            session_minutes: 45,
-            session_rating : 4,
-
-            //activity metrics.
-            new_users   : 2,
-            daily_users : 10,
-            weekly_users: 20,
-
-            //learning metrics.
-            completion_rate     : 68,
-            subjects_per_session: 4,
-            avg_rating          : 3.5,
-          },
-          data   : []
-        },
 
         //schools.
         {
@@ -841,20 +725,39 @@ export default defineComponent({
               label          : "region"
             },
 
-            //gender.
-            {
-              field  : "gender",
-              name   : 'gender',
-              label  : 'gender',
-              options: ['boys', 'girls', 'mixed']
-            },
-
             //details.
             {
               field  : 'details',
               name   : 'details',
               "class": "col-12",
               no_tbl : 1
+            },
+
+            //boys.
+            {
+              field  : "boys",
+              name   : 'boys',
+              label  : 'boys',
+              type   : "number",
+              no_edit: 1
+            },
+
+            //girls.
+            {
+              field  : "girls",
+              name   : 'girls',
+              label  : 'girls',
+              type   : "number",
+              no_edit: 1
+            },
+
+            //total.
+            {
+              field  : "total",
+              name   : 'total',
+              label  : 'total',
+              type   : "number",
+              no_edit: 1
             },
           ],
 
@@ -1168,6 +1071,15 @@ export default defineComponent({
 
     //updateItem
     async updateItem() {
+
+      //classes entity.
+      if (this.entity.name === 'classes') {
+        if (this.entity.active.boys) this.entity.active.total = Number(this.entity.active.boys) + Number(this.entity.active.girls || 0);
+        if (this.entity.active.girls) this.entity.active.total = Number(this.entity.active.girls) + Number(this.entity.active.boys || 0);
+        this.updateSchools();
+      }
+
+      //send data.
       try {
         this.is_loading = true;
         const res       = await $fetch(this.server_url + this.entity.name, {
@@ -1235,6 +1147,25 @@ export default defineComponent({
       }
     },
 
+    //update school count.
+    updateSchools() {
+      this.getEntityByName('schools').data.forEach(school => {
+        school.girls = 0;
+        school.boys  = 0;
+
+        const school_classes = this.getEntityByName('classes').data
+                                   .filter(class_ => Number(class_.school) === Number(school.id));
+
+        school_classes.forEach(class_ => {
+          if (class_.boys) school.boys += Number(class_.boys);
+          if (class_.girls) school.girls += Number(class_.girls);
+        });
+
+        //calculate total.
+        school.total = school.boys + school.girls;
+      });
+    },
+
 
     //get entity item.
     getItemByID(entity_name, item_id) {
@@ -1291,10 +1222,12 @@ export default defineComponent({
 
     //loadItems.
     async loadItems(entity_name) {
+
       try {
         this.is_loading = true;
         const items     = await $fetch(this.server_url + (entity_name || this.entity.name));
         this.is_loading = false;
+
 
         //update current entity items.
         if (!entity_name) {
@@ -1307,6 +1240,9 @@ export default defineComponent({
 
           //clear cache.
           this.cache[entity_name] = null;
+
+          //classes entity.
+          if (entity_name === 'classes') this.updateSchools();
         }
         else return items;
       }
@@ -1317,7 +1253,8 @@ export default defineComponent({
         this.is_loading = false;
         this.notify('Load Error', 'Unable to load items', 'warn');
       }
-    }
+    },
+
 
   },
 
@@ -1328,8 +1265,11 @@ export default defineComponent({
     await this.loadItems();
 
     //background fetch.
-    for (const entity_name of ['class_types', 'regions', 'admins', 'subjects', 'classes', 'teachers', 'pupils']) {
+    for (const entity_name of ['class_types', 'regions', 'admins', 'classes', 'teachers']) {
       this.getEntityByName(entity_name).data = await this.loadItems(entity_name);
+
+      //classes entity.
+      if (entity_name === 'classes') this.updateSchools();
     }
   }
 

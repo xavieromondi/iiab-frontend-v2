@@ -1,40 +1,59 @@
 <template>
   <NuxtPage/>
+  <Toast class="w-18rem"/>
 </template>
 
 
 <script setup lang="js">
-//set content provider.
-useState('content_provider', () => "msingi_pack");
+useState('load-init', () => true);
 
-//mode - url management.
+//set content provider.
+useState('content_provider', () => "msingi");
+
+
+//dev | production mode - url management.
 const mode = 'dev';
 
 // urls - dev.
+const IP_ADDRESS = 'http://64.23.241.11';
+
 if (mode === 'dev') {
   useState('server_url', () => 'http://localhost:3001/api/');
-  useState('kiwix_url', () => 'http://64.23.241.11:3000');
-  useState('msingi_url', () => 'http://64.23.241.11/modules/en-wL_Msingi/');
+  useState('kiwix_url', () => IP_ADDRESS + ':3000');
+  useState('msingi_url', () => IP_ADDRESS + '/modules/en-wL_Msingi/');
+  useState('esoma_url', () => IP_ADDRESS + '/modules/en-esomakids/start/');
+
+  //kolibri.
+  useState('kolibri_url', () => IP_ADDRESS + '/kolibri');
+  useState('kolibri_channel_url', () => IP_ADDRESS + '/kolibri/api/content/channel/');
+  useState('kolibri_content_url', () => IP_ADDRESS + '/kolibri/api/content/contentnode/?parent=');
+
+  //usb.
+  useState('usb_url', () => IP_ADDRESS + '/usb/');
 }
 
 // urls - production.
 else {
   useState('server_url', () => 'backend/api/');
-  const host = window.location.hostname;
-  useState('kiwix_url', () => `http://${host}:${3000}`);
-  useState('msingi_url', () => `http://${host}/modules/en-wL_Msingi/`);
+
+  //3rd party urls.
+  const HOST = window.location.origin;
+  useState('kiwix_url', () => HOST + ':3000');
+  useState('msingi_url', () => HOST + '/modules/en-wL_Msingi/');
+  useState('esoma_url', () => HOST + '/modules/en-esomakids/start/');
+
+  //kolibri.
+  useState('kolibri_url', () => HOST + '/kolibri');
+  useState('kolibri_channel_url', () => HOST + '/kolibri/api/content/channel/');
+  useState('kolibri_content_url', () => HOST + '/kolibri/api/content/contentnode/?parent=');
+
+  //usb.
+  useState('usb_url', () => HOST + '/usb/');
 }
 </script>
 
 
 <style>
-@font-face {
-  font-family: 'Quicksand';
-  src: url('~/fonts/Quicksand-Regular.woff2') format('woff2'),
-  url('~/fonts/Quicksand-Regular.woff') format('woff');
-}
-
-
 body {
   padding: 0;
   margin: 0;

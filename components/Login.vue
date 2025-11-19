@@ -1,20 +1,22 @@
 <template>
-  <div class="grid m-0 h-screen bg-white text-gray-700 select-none">
+  <div class="grid m-0 h-screen bg-white text-gray-700 select-none relative">
 
     <!-- Left column -->
     <div aria-label="Educational learning environment"
          class="hidden md:col-5 md:flex flex-column justify-content-end bg-cover"
-         role="img" style="background-image: url('login-image.jpg');">
+         style="background-image: url('login-image.jpg')">
 
       <!-- Heading -->
-      <h1 class="m-0 p-4 text-white font-bold uppercase text-4xl">
+      <h1
+          class="m-0 p-4 text-white font-bold uppercase text-4xl z-1"
+          aria-label="Welcome to Access Hub Africa Learning Platform">
         Let's Learn!
       </h1>
       <!-- /Heading -->
 
 
       <!-- Company information footer -->
-      <footer class="p-4 text-xs text-gray-300">
+      <footer class="p-4 z-1 text-xs text-gray-300">
 
         <div aria-level="2" class="font-bold" role="heading">
           AHAINNOVATE Limited.
@@ -46,8 +48,8 @@
 
 
       <!-- form container -->
-      <div class="flex justify-content-center">
-        <div class="w-8 lg:w-4 text-center">
+      <div class="md:h-30rem flex align-items-center justify-content-center">
+        <div class="w-9 lg:w-6 xl:w-5 text-center">
 
           <!-- header -->
           <div class="py-3 text-center">
@@ -71,9 +73,9 @@
                   rounded raised
                   @click="fetchSchools(); fetchClassTypes()"/>
             </div>
-            <span class="py-3">
+            <div class="py-3">
               {{ admin ? 'admin' : 'user' }} login
-            </span>
+            </div>
           </div>
           <!-- /login header -->
 
@@ -124,7 +126,9 @@
                 </template>
 
                 <!-- Empty Classes -->
-                <div v-else-if="!is_loading" class="text-xs text-center fadein animation-duration-2000">
+                <div v-else-if="!is_loading"
+                     role="status"
+                     class="text-xs text-center fadein animation-duration-2000">
                   No Classes Available
                 </div>
               </div>
@@ -148,7 +152,9 @@
               <!-- /password -->
 
               <!-- error message -->
-              <div v-if="login_error" class="py-2 text-xs text-orange-400 text-center">
+              <div v-if="login_error"
+                   aria-live="assertive"
+                   class="py-2 text-xs text-orange-400 text-center">
                 <i class="pi pi-exclamation-circle text-xs"/>
                 Wrong username / Password
               </div>
@@ -178,7 +184,8 @@
 
 
           <!-- mobile footer -->
-          <div class="h-5rem md:hidden text-center pt-6 text-xs text-gray-600">
+          <div class="h-5rem md:hidden text-center pt-6 text-xs text-gray-600"
+               aria-label="Company information">
             <div>AHAINNOVATE Limited.</div>
             <div>(Access Hub Africa)</div>
           </div>
@@ -207,10 +214,6 @@ export default defineComponent({
 
   data() {
     return {
-      //server_url.
-      //server_url: "backend/api/", //production
-      //server_url: "http://localhost:3001/api/", // dev mode
-
       //UI.
       is_loading: true,
 
@@ -267,9 +270,16 @@ export default defineComponent({
         this.is_loading = false;
 
         //session initialize error.
-        if (res.error) this.notify('Session Error', res.error, 'warn');
+        if (res.error) {
+          this.$toast.add({
+            severity: 'warn',
+            summary : 'Session Error',
+            detail  : res.error,
+            life    : 2000
+          });
+        }
 
-        //initiate session.
+        //session init.
         else if (res.data) {
           useState('session').value.data   = res.data;
           useState('session').value.school = this.school;
@@ -283,7 +293,12 @@ export default defineComponent({
           //user login error.
       catch (e) {
         //notify | stop loading.
-        this.notify('Login error', 'Sorry, unable to login', 'warn');
+        this.$toast.add({
+          severity: 'warn',
+          summary : 'Login error',
+          detail  : 'Sorry, unable to login',
+          life    : 2000
+        });
         this.is_loading = false;
       }
     },
@@ -315,13 +330,23 @@ export default defineComponent({
 
           //set registration UI | notify.
           useState('ui').value = 'registration';
-          this.notify(res.success, '', 'success');
+          this.$toast.add({
+            severity: 'success',
+            summary : 'Login successful',
+            detail  : res.success,
+            life    : 2000
+          });
         }
 
         //server login error.
         else if (res.error) {
           this.login_error = "Unable to login, please again later.";
-          this.notify('Login Error, ', res.error, 'warn');
+          this.$toast.add({
+            severity: 'warn',
+            summary : 'Login error',
+            detail  : res.error,
+            life    : 2000
+          });
         }
 
       } //login.
@@ -331,7 +356,7 @@ export default defineComponent({
         //stop load.
         this.is_loading  = false;
         this.login_error = "Wrong username / password";
-        this.notify('Login Error, ', 'sorry, server offline', 'warn');
+        this.serverOffline();
       }
     },
 
@@ -347,7 +372,7 @@ export default defineComponent({
         this.is_loading = false;
       }
       catch (e) {
-        this.notify('Schools Error', 'Server offline', 'warn');
+        this.serverOffline();
         this.is_loading = false;
       }
     },
@@ -363,7 +388,7 @@ export default defineComponent({
         this.is_loading = false;
       }
       catch (e) {
-        this.notify('Class Load Error', 'Server offline', 'warn');
+        this.serverOffline();
         this.is_loading = false;
       }
     },
@@ -376,12 +401,22 @@ export default defineComponent({
         this.is_loading  = false;
       }
       catch (e) {
-        this.notify('Class type Load Error', 'Server offline', 'warn');
+        this.serverOffline();
         this.is_loading = false;
       }
     },
 
+    //server offline popup.
+    serverOffline() {
+      this.$toast.add({
+        severity: 'warn',
+        summary : 'Load Error',
+        detail  : 'Sorry, server offline',
+        life    : 2000
+      });
+    },
 
+    //session reset.
     resetSession() {
       useState('session').value = {
         school: null,
@@ -404,31 +439,16 @@ export default defineComponent({
         }
       });
     },
-
-    //notify.
-    notify(title, details, severity) {
-      this.$toast.add({
-        severity: severity || 'info',
-        summary : title || 'Update',
-        detail  : details,
-        life    : 2000
-      });
-    },
   },
 
-  async beforeMount() {
+  async mounted() {
+    if (useState('logout').value) useState('logout').value = null;
+
     //reset session.
     this.resetSession();
 
     await this.fetchSchools();
     if (this.schools.length) await this.fetchClassTypes();
-  },
-
-  async mounted() {
-    if (useState('logout').value) {
-      this.resetSession();
-      useState('logout').value = null;
-    }
   }
 
 })

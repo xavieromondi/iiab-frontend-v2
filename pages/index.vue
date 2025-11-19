@@ -110,8 +110,6 @@
     <Learn :close="close_entry" v-else-if="useState('ui').value === 'learn'"/>
     <Dashboard v-else-if="useState('ui').value === 'dashboard'"/>
   </ClientOnly>
-
-  <Toast class="w-18rem"/>
 </template>
 
 
