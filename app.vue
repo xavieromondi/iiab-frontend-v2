@@ -12,7 +12,7 @@ useState('content_provider', () => "msingi");
 
 
 //dev | production mode - url management.
-const mode = 'dev';
+const mode = 'production';
 
 // urls - dev.
 const IP_ADDRESS = 'http://64.23.241.11';
@@ -22,6 +22,7 @@ if (mode === 'dev') {
   useState('kiwix_url', () => IP_ADDRESS + ':3000');
   useState('msingi_url', () => IP_ADDRESS + '/modules/en-wL_Msingi/');
   useState('esoma_url', () => IP_ADDRESS + '/modules/en-esomakids/start/');
+  useState('africana_url', () => IP_ADDRESS + '/modules/en-africana_academy/');
 
   //kolibri.
   useState('kolibri_url', () => IP_ADDRESS + '/kolibri');
@@ -41,6 +42,7 @@ else {
   useState('kiwix_url', () => HOST + ':3000');
   useState('msingi_url', () => HOST + '/modules/en-wL_Msingi/');
   useState('esoma_url', () => HOST + '/modules/en-esomakids/start/');
+  useState('africana_url', () => HOST + '/modules/en-africana_academy/');
 
   //kolibri.
   useState('kolibri_url', () => HOST + '/kolibri');

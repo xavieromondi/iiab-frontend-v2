@@ -2,7 +2,7 @@
   <div class="col-12">
 
     <!-- header -->
-    <div v-if="mp_grade" class="px-2 pt-3">
+    <div v-if="mp_grade" class="pt-3 px-2">
       <div class="flex justify-content-between align-items-center shadow-2 border-round-3xl overflow-hidden">
 
         <div>
@@ -10,18 +10,17 @@
                   severity="success"
                   style="clip-path: polygon(0 0, 80% 0, 100% 50%, 80% 100%, 0 100%)"/>
 
-          <Button class="bg-transparent text-gray-800 text-lg border-none">
-            <span class="font-bold">{{ mp_grade }}</span>
-          </Button>
+          <Button :label="mp_grade" class="bg-transparent text-gray-800 text-lg border-none"/>
 
           <Button v-if="subject"
-                  class="h-full w-12rem border-none"
+                  class="h-full px-5 border-none"
                   severity="success"
-                  style="clip-path: polygon(0 0, 85% 0, 100% 50%, 85% 100%, 0 100%, 10% 50%)"
-                  @click="closeSubject">
-            <span class="font-bold">{{ subject.title }}</span>
-            <i class="pi pi-times"/>
-          </Button>
+                  icon="pi pi-times"
+                  icon-pos="right"
+                  :label="subject.title"
+                  :loading="is_loading==='closeSubject'"
+                  style="clip-path: polygon(0 0, 90% 0, 100% 50%, 90% 100%, 0 100%, 5% 50%)"
+                  @click="closeSubject"/>
         </div>
 
         <div>
@@ -46,13 +45,13 @@
 
 
     <!-- content -->
-    <div class="grid m-0 relative pt-3">
+    <div class="grid m-0 relative">
 
       <!-- msingi subject iframe -->
       <div v-if="subject" class="col-12">
 
         <!-- subject iframe -->
-        <div v-if="subject" id="iframe-box" class="relative">
+        <div id="iframe-box" class="relative">
 
           <!-- Loading overlay -->
           <div v-if="is_loading" class="flex items-center justify-center absolute z-4">
@@ -88,7 +87,7 @@
       <template v-else-if="msingi_grade_subjects">
         <div v-for="subject_ in msingi_grade_subjects"
              class="col-12 md:col-6 lg:col-4 fadein animation-duration-500 select-none">
-          <subject-card :link_="subject_.link"
+          <subject-card :link_="msingi_url+subject_.link"
                         :subject="subject_"
                         :title_="subject_.title"
                         @click="loadMsingiSubject(subject_)"/>
@@ -235,7 +234,9 @@ export default defineComponent({
     //close subject.
     async closeSubject() {
       //update session.
+      this.is_loading = "closeSubject";
       await useUpdateSubjectSession(this.subject.title);
+      this.is_loading = false;
 
       //close subject.
       this.subject     = null;
@@ -272,7 +273,7 @@ export default defineComponent({
 //////////////////////////////////////////// VIEW CONTROLS.
 
 
-    /////////////////////////////////////////// NOTIFICATIONS.
+/////////////////////////////////////////// NOTIFICATIONS.
 
     //notify.
     notify(title, details, severity) {

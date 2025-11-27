@@ -50,7 +50,7 @@ export default defineComponent({
       //check subject availability.
       try {
         this.is_loading = true;
-        const res       = await fetch(this.msingi_url + this.link_, {method: 'HEAD'});
+        const res       = await fetch(this.link_, {method: 'HEAD'});
         this.is_loading = false;
 
         //update subject state.
