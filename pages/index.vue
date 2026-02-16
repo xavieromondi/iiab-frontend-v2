@@ -39,6 +39,10 @@
               <div class="white-space-nowrap">
                 <Badge :value="useState('session').value.class_.name" severity="warn" size="small"/>
               </div>
+
+              <div v-if="useState('session').value.pupil" class="white-space-nowrap">
+                <Badge :value="useState('session').value.pupil.name" severity="success" size="small"/>
+              </div>
             </template>
             <!-- user school & user -->
 
@@ -176,6 +180,10 @@ export default defineComponent({
       useState('logout').value = 1;
       useState('admin').value  = null;
       useState('ui').value     = "login";
+      if (process.client) {
+        localStorage.removeItem('iiab_session');
+        localStorage.removeItem('iiab_ui');
+      }
     },
   },
 

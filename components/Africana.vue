@@ -116,7 +116,7 @@
       <div v-for="grade_ in studies" class="col-6 md:col-4">
         <div
             class="w-full h-5rem p-3 border-3 border-white fadein animation-duration-500 shadow-2 hover:shadow-4 border-round-xl overflow-hidden bg-green-600 hover:bg-green-500  text-white flex align-items-center justify-content-between"
-            @click="grade=grade_">
+            @click="viewGrade(grade_)">
           <div class="font-bold">{{ grade_.name }}</div>
           <div class="flex align-items-center">
             <badge :value="grade_.subjects.length"
@@ -159,6 +159,18 @@ export default defineComponent({
 
 /////////////////////////////////// SUBJECT CONTROLS.
 
+    //update url query.
+    updateUrl(params) {
+      if (!this.$router || !this.$route) return;
+      const query = {...this.$route.query};
+      Object.keys(params).forEach(key => {
+        const val = params[key];
+        if (val === null || val === undefined || val === '') delete query[key];
+        else query[key] = val;
+      });
+      this.$router.replace({query});
+    },
+
     //load subject.
     async loadSubject(subject) {
       //missing subject.
@@ -170,6 +182,12 @@ export default defineComponent({
       //set active subject.
       this.is_loading = true;
       this.subject    = subject;
+      this.updateUrl({
+        provider: 'africana',
+        grade   : this.grade?.name || null,
+        subject : subject.name,
+        link    : subject.link
+      });
       await useUpdateSubjectSession(subject.name);
     },
 
@@ -184,6 +202,12 @@ export default defineComponent({
       //close subject.
       this.subject     = null;
       this.full_screen = false;
+      this.updateUrl({
+        provider: 'africana',
+        grade   : this.grade?.name || null,
+        subject : null,
+        link    : null
+      });
     },
 
 /////////////////////////////////// SUBJECT CONTROLS.
@@ -191,12 +215,23 @@ export default defineComponent({
 
 /////////////////////////////////// STUDIES CONTROLS.
 
+    //view grade.
+    async viewGrade(grade) {
+      this.grade = grade;
+      this.updateUrl({
+        provider: 'africana',
+        grade   : grade?.name || null,
+        subject : null,
+        link    : null
+      });
+    },
+
     //get africana studies.
     async getStudies() {
       try {
         //get raw html.
         this.is_loading = 'getStudies';
-        const html      = await $fetch(this.africana_url);
+        const html      = await $fetch(this.africana_url, {responseType: 'text'});
         this.is_loading = false;
 
         //parse content.
@@ -239,6 +274,12 @@ export default defineComponent({
       //close subject | reset UI.
       this.subject     = null;
       this.full_screen = false;
+      this.updateUrl({
+        provider: 'africana',
+        grade   : null,
+        subject : null,
+        link    : null
+      });
     },
 
 /////////////////////////////////// STUDIES CONTROLS.
@@ -287,7 +328,20 @@ export default defineComponent({
   },
 
   mounted() {
-    this.getStudies();
+    this.getStudies().then(async () => {
+      const q = this.$route?.query || {};
+      if (q.provider === 'africana' && this.studies && this.studies.length) {
+        const matchName = (a, b) => a && b && a.trim().toLowerCase() === b.trim().toLowerCase();
+        const grade = q.grade ? this.studies.find(g => matchName(g.name, q.grade)) : null;
+        if (grade) {
+          this.grade = grade;
+          if (q.link || q.subject) {
+            const subject_ = (grade.subjects || []).find(s => (q.link && s.link === q.link) || (q.subject && matchName(s.name, q.subject)));
+            if (subject_) this.loadSubject(subject_);
+          }
+        }
+      }
+    });
   }
 })
 </script>

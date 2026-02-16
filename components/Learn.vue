@@ -44,6 +44,17 @@
                   @click="useState('content_provider').value = content_provider_"/>
           <!-- /content_providers -->
 
+          <!-- Services Button -->
+          <Button
+            label="Services"
+            icon="pi pi-server"
+            :outlined="content_provider !== 'services'"
+            :class="'hidden lg:block border-1 border-green-200 text-white ' +
+                   (content_provider === 'services' ? 'bg-orange-500 hover:bg-orange-500' : 'hover:bg-green-500 hover:shadow-3')"
+            rounded raised
+            @click="useState('content_provider').value = 'services'"
+          />
+          <!-- /Services Button -->
 
           <!-- logout -->
           <div class="md:pl-4">
@@ -79,6 +90,15 @@
 
     <!-- Africana content -->
     <Africana v-else-if="content_provider === 'africana'"/>
+
+    <!-- Services Grid Component -->
+    <ServicesGrid v-else-if="content_provider === 'services'"/>
+
+    <!-- Assignments -->
+    <Assignments v-else-if="content_provider === 'assignments'"/>
+
+    <!-- Assignments -->
+    <Assignments v-else-if="content_provider === 'assignments'"/>
 
 
     <Drawer v-model:visible="showDrawer" header="Let's Learn" position="right">
@@ -118,7 +138,7 @@ export default defineComponent({
       subject_is_loading: false,
 
       //content providers.
-      content_providers: ['msingi', 'africana', 'local', 'general', 'esoma', 'kolibri'],
+      content_providers: ['msingi', 'africana', 'local', 'general', 'esoma', 'kolibri', 'services', 'assignments'],
 
       //entries.
       entry: null,
@@ -148,6 +168,12 @@ export default defineComponent({
     }
   },
 
+  watch: {
+    content_provider(val) {
+      this.updateProviderUrl(val);
+    },
+  },
+
   methods: {
 
 /////////////////////////////////////////// GLOBAL CONTROLS.
@@ -167,7 +193,25 @@ export default defineComponent({
       useState('ui').value = "login";
     },
 
+    //sync provider to url.
+    updateProviderUrl(provider) {
+      if (!this.$router || !this.$route) return;
+      const query = {...this.$route.query, provider};
+      if (provider && provider !== this.$route.query.provider) {
+        delete query.grade;
+        delete query.subject;
+        delete query.link;
+      }
+      this.$router.replace({query});
+    },
+
 /////////////////////////////////////////// GLOBAL CONTROLS.
+  },
+
+  mounted() {
+    const provider = this.$route?.query?.provider;
+    if (provider) useState('content_provider').value = provider;
+    else this.updateProviderUrl(this.content_provider);
   },
 
 });

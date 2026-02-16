@@ -253,6 +253,18 @@ export default defineComponent({
 
   methods: {
 
+    //update url query.
+    updateUrl(params) {
+      if (!this.$router || !this.$route) return;
+      const query = {...this.$route.query};
+      Object.keys(params).forEach(key => {
+        const val = params[key];
+        if (val === null || val === undefined || val === '') delete query[key];
+        else query[key] = val;
+      });
+      this.$router.replace({query});
+    },
+
     //get topic thumbnail url.
     getTopicThumbnailUrl(topic) {
       if (!topic || !topic.files) return null;
@@ -410,6 +422,7 @@ export default defineComponent({
   },
 
   async mounted() {
+    this.updateUrl({provider: 'kolibri', grade: null, subject: null, link: null});
     await this.getChannels();
   }
 })

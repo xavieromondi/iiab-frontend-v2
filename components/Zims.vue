@@ -184,6 +184,17 @@ export default defineComponent({
   },
 
   methods: {
+    //update url query.
+    updateUrl(params) {
+      if (!this.$router || !this.$route) return;
+      const query = {...this.$route.query};
+      Object.keys(params).forEach(key => {
+        const val = params[key];
+        if (val === null || val === undefined || val === '') delete query[key];
+        else query[key] = val;
+      });
+      this.$router.replace({query});
+    },
     /////////////////////////////////////////// ITEM VIEW CONTROLS.
 
     //view full screen.
@@ -296,6 +307,10 @@ export default defineComponent({
 
       //set active entry.
       this.entry = entry;
+      this.updateUrl({
+        provider: 'general',
+        subject : entry.title
+      });
 
       //set loading progress.
       this.is_loading = true;
@@ -316,6 +331,10 @@ export default defineComponent({
 
       //close current entry.
       this.entry = null;
+      this.updateUrl({
+        provider: 'general',
+        subject : null
+      });
     },
 
 /////////////////////////////////////////// ZIM ENTRY CONTROLS.
@@ -348,7 +367,13 @@ export default defineComponent({
   },
 
   mounted() {
-    this.getEntries();
+    this.getEntries().then(() => {
+      const q = this.$route?.query || {};
+      if (q.provider === 'general' && q.subject && this.entries && this.entries.length) {
+        const entry = this.entries.find(e => e.title === q.subject);
+        if (entry) this.viewEntry(entry);
+      }
+    });
   }
 })
 </script>

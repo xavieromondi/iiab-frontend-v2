@@ -313,6 +313,34 @@
       </div>
       <!-- overall | active item | date -->
 
+      <!-- filters -->
+      <div class="p-2 border-1 border-top-none border-gray-300 bg-white text-xs">
+        <div class="grid m-0">
+          <div class="col-12 md:col-4">
+            <Select v-model="filter_school"
+                    :options="schools"
+                    option-label="name"
+                    placeholder="Filter School"
+                    class="w-full"/>
+          </div>
+          <div class="col-12 md:col-4">
+            <Select v-model="filter_grade"
+                    :options="class_types"
+                    option-label="name"
+                    placeholder="Filter Grade"
+                    class="w-full"/>
+          </div>
+          <div class="col-12 md:col-4">
+            <Select v-model="filter_group"
+                    :options="getGroupOptions()"
+                    option-label="name"
+                    placeholder="Filter Group"
+                    class="w-full"/>
+          </div>
+        </div>
+      </div>
+      <!-- /filters -->
+
 
       <!-- metric data  -->
       <div class="grid m-0 border-1 border-bottom-none border-gray-300 capitalize text-xs">
@@ -577,6 +605,19 @@ export default defineComponent({
       active_category: "schools",
       activeItem     : null,
 
+      //filters.
+      filter_school: null,
+      filter_grade : null,
+      filter_group : null,
+
+      //matomo.
+      matomo: null,
+      matomo_subjects: [],
+      matomo_breakdowns: {
+        schools: {},
+        classes: {}
+      },
+
       //date periods.
       start_date: null,
       end_date  : null,
@@ -674,6 +715,18 @@ export default defineComponent({
     }
   },
 
+  watch: {
+    filter_school() {
+      this.updatePeriod();
+    },
+    filter_grade() {
+      this.updatePeriod();
+    },
+    filter_group() {
+      this.updatePeriod();
+    },
+  },
+
   computed: {
     //server url.
     server_url() {
@@ -683,8 +736,17 @@ export default defineComponent({
     //active table data.
     tableData() {
       if (this.active_category === 'regions') return this.regions;
-      else if (this.active_category === 'schools') return this.schools;
-      else if (this.active_category === 'classes') return this.classes;
+      else if (this.active_category === 'schools') {
+        if (this.filter_school) return this.schools.filter(s => Number(s.id) === Number(this.filter_school.id));
+        return this.schools;
+      }
+      else if (this.active_category === 'classes') {
+        let classes = this.classes;
+        if (this.filter_school) classes = classes.filter(c => Number(c.school) === Number(this.filter_school.id));
+        if (this.filter_grade) classes = classes.filter(c => this.getClassGradeName(c) === this.filter_grade.name);
+        if (this.filter_group) classes = classes.filter(c => c.group === this.filter_group.name);
+        return classes;
+      }
       else if (this.active_category === 'subjects') return this.subjects;
 
       return [];
@@ -698,6 +760,21 @@ export default defineComponent({
     //end_time
     end_time() {
       return new Date(this.end_date).getTime();
+    },
+
+    //active filters segment.
+    matomoSegment() {
+      const parts = [];
+      if (this.filter_school && this.filter_school.name) {
+        parts.push(`dimension4==${this.filter_school.name}`);
+      }
+      if (this.filter_grade && this.filter_grade.name) {
+        parts.push(`dimension2==${this.filter_grade.name}`);
+      }
+      if (this.filter_group && this.filter_group.name) {
+        parts.push(`dimension3==${this.filter_group.name}`);
+      }
+      return parts.join(';');
     },
 
 
@@ -725,12 +802,22 @@ export default defineComponent({
 //////////////////////////////////////////////// METRICS - SESSIONS.
     //get total sessions.
     totalSessions() {
+      if (this.matomo && !this.activeItem) {
+        const visits = Number(this.matomo.nb_visits || 0);
+        return visits;
+      }
       if (this.activeItem) return (this.activeItem.sessions || 0);
-      else return this.sessions.length;
+      return this.sessions.length;
     },
 
     //get avg. minutes per session.
     avgMinutesPerSession() {
+      if (this.matomo && !this.activeItem) {
+        const visits  = Number(this.matomo.nb_visits || 0);
+        const seconds = Number(this.matomo.sum_visit_length || 0);
+        if (!visits) return 0.00;
+        return (seconds / visits / 60).toFixed(2);
+      }
       //sessions check.
       if (!this.sessions.length) return 0.00;
 
@@ -823,6 +910,13 @@ export default defineComponent({
       if (!this.sessions) return 0;
       let sessions = this.sessions;
 
+      if (this.matomo && !this.activeItem) {
+        const uniq = Number(this.matomo.nb_uniq_visitors || this.matomo.nb_unique_visitors || 0);
+        const days = (this.end_time - this.start_time) / (1000 * 60 * 24);
+        if (!days) return 0;
+        return Math.ceil(uniq / days);
+      }
+
       //days.
       const days = (this.end_time - this.start_time) / (1000 * 60 * 24);
 
@@ -861,6 +955,13 @@ export default defineComponent({
     weeklyUsers() {
       if (!this.sessions) return 0;
       let sessions = this.sessions;
+
+      if (this.matomo && !this.activeItem) {
+        const uniq  = Number(this.matomo.nb_uniq_visitors || this.matomo.nb_unique_visitors || 0);
+        const weeks = (this.end_time - this.start_time) / (1000 * 60 * 24 * 7);
+        if (!weeks) return 0;
+        return Math.ceil(uniq / weeks);
+      }
 
       //weeks.
       const weeks = (this.end_time - this.start_time) / (1000 * 60 * 24 * 7);
@@ -1133,6 +1234,11 @@ export default defineComponent({
       //subject length check.
       if (!this.subjects.length) return 0;
 
+      if (this.matomo_subjects && this.matomo_subjects.length) {
+        const total = this.subjects.reduce((sum, subject) => sum + Number(subject.views || 0), 0);
+        return Math.ceil(total / this.subjects.length);
+      }
+
       let views = 0;
       this.sessions.filter(session => session.entries)
           .map(session => {
@@ -1149,6 +1255,12 @@ export default defineComponent({
     avgSubjectViewsPerClass() {
       //subject length check.
       if (!this.subjects.length) return 0;
+
+      if (this.matomo_subjects && this.matomo_subjects.length) {
+        const total = this.subjects.reduce((sum, subject) => sum + Number(subject.views || 0), 0);
+        if (!this.classes.length) return 0;
+        return Math.ceil(total / this.classes.length);
+      }
 
       let views = 0;
       this.sessions.filter(session => session.entries)
@@ -1167,6 +1279,10 @@ export default defineComponent({
       //subject length check.
       if (!this.subjects.length) return 0;
 
+      if (this.matomo_subjects && this.matomo_subjects.length) {
+        return this.subjects.reduce((sum, subject) => sum + Number(subject.views || 0), 0);
+      }
+
       let views = 0;
       this.sessions.filter(session => session.entries)
           .map(session => {
@@ -1181,6 +1297,44 @@ export default defineComponent({
   },
 
   methods: {
+    //group options list.
+    getGroupOptions() {
+      const seen = new Set();
+      return this.classes
+                 .map(class_ => class_.group)
+                 .filter(group => group && !seen.has(group) && seen.add(group))
+                 .map(group => ({name: group}));
+    },
+
+    //grade-like labels should not be treated as subjects.
+    isGradeLabel(label) {
+      if (!label) return false;
+      const text = String(label).trim();
+      return /^(pp\s?1|pp\s?2|grade\s?\d+|class\s?\d+)$/i.test(text);
+    },
+
+    //apply local filters to sessions/classes.
+    applyLocalFilters() {
+      //apply filters to sessions.
+      this.sessions = this.raw_sessions
+                          .filter(session => Number(session.start_time) >= this.start_time && Number(session.end_time) <= this.end_time)
+                          .filter(session => {
+                            if (this.filter_school && Number(session.school) !== Number(this.filter_school.id)) return false;
+                            return true;
+                          })
+                          .filter(session => {
+                            if (this.filter_grade || this.filter_group) {
+                              const class_ = this.classes.find(c => Number(c.id) === Number(session.class_));
+                              if (!class_) return false;
+                              if (this.filter_grade) {
+                                const gradeName = this.getClassGradeName(class_);
+                                if (gradeName !== this.filter_grade.name) return false;
+                              }
+                              if (this.filter_group && class_.group !== this.filter_group.name) return false;
+                            }
+                            return true;
+                          });
+    },
 //////////////////////////////////////////// RATINGS.
     //get subject rating.
     getSubjectRating(subject_name) {
@@ -1230,6 +1384,13 @@ export default defineComponent({
     getClassName(class_type_id) {
       const class_type = this.class_types.find(class_type => Number(class_type.id) === Number(class_type_id));
       return class_type ? class_type.name : '-';
+    },
+
+    //get class grade name from class item.
+    getClassGradeName(class_) {
+      if (!class_) return null;
+      const class_type = this.class_types.find(class_type => Number(class_type.id) === Number(class_.name));
+      return class_type ? class_type.name : null;
     },
 
     //get classes based on school id.
@@ -1403,8 +1564,12 @@ export default defineComponent({
         else this[cat_name] = await this.loadItems(cat_name)
       }
 
+      //fetch matomo.
+      await this.loadMatomo();
+
       //compute metrics.
       this.computeMetrics();
+      this.applyMatomoBreakdowns();
     },
 
     //loadItems.
@@ -1426,11 +1591,142 @@ export default defineComponent({
       }
     },
 
+    //load matomo summary.
+    async loadMatomo() {
+      try {
+        const site_id = useState('matomo_site_id').value;
+        const start   = this.start_date.toISOString().slice(0, 10);
+        const end     = this.end_date.toISOString().slice(0, 10);
+        const segment = this.matomoSegment;
+
+        const res = await $fetch(this.server_url + `matomo?site_id=${site_id}&start=${start}&end=${end}` + (segment ? `&segment=${encodeURIComponent(segment)}` : ''));
+        if (res && !res.error && res.visits) {
+          this.matomo = {
+            ...res.visits,
+            actions    : res.actions?.nb_actions || 0,
+            pageviews  : res.actions?.nb_pageviews || 0,
+          };
+        }
+
+        await this.loadMatomoSubjects();
+        await this.loadMatomoBreakdowns();
+      }
+      catch (e) {
+        //silent fail.
+      }
+    },
+
+    //load matomo subject views.
+    async loadMatomoSubjects() {
+      try {
+        const site_id = useState('matomo_site_id').value;
+        const start   = this.start_date.toISOString().slice(0, 10);
+        const end     = this.end_date.toISOString().slice(0, 10);
+        const segment = this.matomoSegment;
+
+        const res = await $fetch(
+            this.server_url +
+            `matomo?method=Events.getNameFromCategory&category=Subject&site_id=${site_id}&start=${start}&end=${end}` +
+            (segment ? `&segment=${encodeURIComponent(segment)}` : '')
+        );
+        if (Array.isArray(res)) {
+          this.matomo_subjects = res
+              .filter(item => item.label && item.nb_events)
+              .filter(item => !this.isGradeLabel(item.label))
+              .map(item => ({
+                name   : item.label,
+                views  : Number(item.nb_events || 0),
+                sessions: Number(item.nb_events || 0),
+                session_avg: 0
+              }));
+          if (this.matomo_subjects.length) this.subjects = this.matomo_subjects;
+        }
+      }
+      catch (e) {
+        //silent fail.
+      }
+    },
+
+    //load matomo breakdowns by school and class.
+    async loadMatomoBreakdowns() {
+      try {
+        const site_id = useState('matomo_site_id').value;
+        const start   = this.start_date.toISOString().slice(0, 10);
+        const end     = this.end_date.toISOString().slice(0, 10);
+
+        this.matomo_breakdowns = {schools: {}, classes: {}};
+
+        //schools.
+        for (const school of this.schools) {
+          const segment = `dimension4==${school.name}`;
+          const res     = await $fetch(
+              this.server_url +
+              `matomo?method=VisitsSummary.get&site_id=${site_id}&start=${start}&end=${end}&segment=${encodeURIComponent(segment)}`
+          );
+          if (res && !res.error) {
+            this.matomo_breakdowns.schools[school.id] = {
+              visits: Number(res.nb_visits || 0),
+              seconds: Number(res.sum_visit_length || 0)
+            };
+          }
+        }
+
+        //classes.
+        for (const class_ of this.classes) {
+          const school = this.schools.find(s => Number(s.id) === Number(class_.school));
+          if (!school) continue;
+
+          const gradeName = this.getClassGradeName(class_);
+          if (!gradeName || !class_.group) continue;
+
+          const segment = `dimension4==${school.name};dimension2==${gradeName};dimension3==${class_.group}`;
+          const res     = await $fetch(
+              this.server_url +
+              `matomo?method=VisitsSummary.get&site_id=${site_id}&start=${start}&end=${end}&segment=${encodeURIComponent(segment)}`
+          );
+          if (res && !res.error) {
+            this.matomo_breakdowns.classes[class_.id] = {
+              visits: Number(res.nb_visits || 0),
+              seconds: Number(res.sum_visit_length || 0)
+            };
+          }
+        }
+
+      }
+      catch (e) {
+        //silent fail.
+      }
+    },
+
+    //apply matomo breakdowns to class/school metrics.
+    applyMatomoBreakdowns() {
+      if (!this.matomo_breakdowns) return;
+
+      //classes.
+      this.classes.forEach(class_ => {
+        const data = this.matomo_breakdowns.classes[class_.id];
+        if (!data) return;
+
+        class_.sessions           = data.visits;
+        class_.session_total_time = (data.seconds / 60).toFixed(2);
+        class_.session_avg        = data.visits ? (data.seconds / data.visits / 60).toFixed(2) : 0;
+      });
+
+      //schools.
+      this.schools.forEach(school => {
+        const data = this.matomo_breakdowns.schools[school.id];
+        if (!data) return;
+
+        school.sessions           = data.visits;
+        school.session_total_time = (data.seconds / 60).toFixed(2);
+        school.session_avg        = data.visits ? (data.seconds / data.visits / 60).toFixed(2) : 0;
+      });
+    },
+
     //compute session metrics.
     computeMetrics() {
       //sessions time filter.
-      this.sessions = this.raw_sessions
-                          .filter(session => Number(session.start_time) >= this.start_time && Number(session.end_time) <= this.end_time)
+      this.applyLocalFilters();
 
       //classes.
       for (const class_ of this.classes) {
@@ -1523,6 +1819,12 @@ export default defineComponent({
         region.subject_avg = (region.subject_avg / region.schools).toFixed(2);
       }
 
+      //use matomo subjects when available.
+      if (this.matomo_subjects && this.matomo_subjects.length) {
+        this.subjects = this.matomo_subjects;
+        return;
+      }
+
 
       //subjects.
       this.subjects  = [];
@@ -1604,8 +1906,10 @@ export default defineComponent({
 
 //////////////////////////////////////////// PERIOD.
     //update active period.
-    updatePeriod() {
+    async updatePeriod() {
+      await this.loadMatomo();
       this.computeMetrics();
+      this.applyMatomoBreakdowns();
       this.notify('period', 'active period updated', 'info');
     },
 //////////////////////////////////////////// PERIOD.

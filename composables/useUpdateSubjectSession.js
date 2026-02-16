@@ -31,4 +31,9 @@ export async function useUpdateSubjectSession(subject_name) {
 
 	//save session.
 	await useSaveSession();
+
+	//matomo tracking.
+	if (process.client && window._paq) {
+		_paq.push(['trackEvent', 'Subject', 'View', subject_name]);
+	}
 }

@@ -133,6 +133,8 @@
                 </div>
               </div>
               <!-- /user grade -->
+
+              
             </template>
 
             <!-- admin -->
@@ -171,7 +173,7 @@
             <Skeleton v-if="is_loading" class="w-full h-3rem border-round-3xl"/>
 
             <Button v-else
-                    :disabled="(admin && (!username || !password)) || (!admin && !class_)"
+                    :disabled="(admin && (!username || !password)) || (!admin && (!class_))"
                     :loading="is_loading"
                     class="w-full h-3rem fadein animation-duration-1000"
                     icon="pi pi-user"
@@ -246,6 +248,11 @@ export default defineComponent({
     async school() {
       await this.fetchClasses();
     },
+
+    //check selected class.
+    async class_() {
+      return;
+    },
   },
 
   methods: {
@@ -264,7 +271,8 @@ export default defineComponent({
           method: 'POST',
           body  : {
             school: this.school.id,
-            class_: this.class_.id
+            class_: this.class_.id,
+            pupil : null
           }
         });
         this.is_loading = false;
@@ -284,10 +292,14 @@ export default defineComponent({
           useState('session').value.data   = res.data;
           useState('session').value.school = this.school;
           useState('session').value.class_ = this.class_;
+          useState('session').value.pupil  = null;
         }
 
         //ui update.
         useState('ui').value = 'learn';
+
+        //matomo tracking.
+        this.trackMatomoLogin();
       }
 
           //user login error.
@@ -385,6 +397,7 @@ export default defineComponent({
       try {
         this.is_loading = true;
         this.classes    = await $fetch(this.server_url + `classes?school=${this.school.id}`);
+        this.class_     = null;
         this.is_loading = false;
       }
       catch (e) {
@@ -428,16 +441,72 @@ export default defineComponent({
 
     //generate class names.
     getClassOptions() {
-      return this.classes.map(class_ => {
+      const options = this.classes.map(class_ => {
         //fetch class type data.
         const class_type = this.class_types.find(class_type => Number(class_type.id) === Number(class_.name));
 
         //push class data.
         if (class_type) return {
-          name: class_type.name,
+          name: class_.group ? `${class_type.name} - ${class_.group}` : class_type.name,
           id  : class_.id
         }
+        return null;
+      }).filter(Boolean);
+
+      const rankFor = (name) => {
+        const n = (name || '').toString().trim().toLowerCase();
+        if (/^pp\\s*1\\b/.test(n) || /^pp1\\b/.test(n)) return 0;
+        if (/^pp\\s*2\\b/.test(n) || /^pp2\\b/.test(n)) return 1;
+        const m = n.match(/^grade\\s*(\\d+)\\b/);
+        if (m) return 2 + Math.max(0, Number(m[1]) - 1);
+        return 999;
+      };
+
+      const groupKey = (name) => {
+        const m = (name || '').match(/-\\s*(.+)$/);
+        if (!m) return '';
+        const g = m[1].trim();
+        const num = parseInt(g, 10);
+        if (!Number.isNaN(num)) return num;
+        return g.toLowerCase();
+      };
+
+      return options.sort((a, b) => {
+        const ra = rankFor(a.name);
+        const rb = rankFor(b.name);
+        if (ra !== rb) return ra - rb;
+        const ga = groupKey(a.name);
+        const gb = groupKey(b.name);
+        if (ga < gb) return -1;
+        if (ga > gb) return 1;
+        return a.name.localeCompare(b.name);
       });
+    },
+
+    //matomo tracking.
+    trackMatomoLogin() {
+      if (!window._paq) return;
+
+      const class_     = this.classes.find(c => Number(c.id) === Number(this.class_.id));
+      const class_type = class_ ? this.class_types.find(ct => Number(ct.id) === Number(class_.name)) : null;
+      const grade_name = class_type ? class_type.name : null;
+      const group_name = class_ ? class_.group : null;
+
+      //store tracking meta on session for restore.
+      useState('session').value.meta = {
+        school  : this.school.name,
+        grade   : grade_name || '',
+        group   : group_name || '',
+        pupil_id: ''
+      };
+
+      const dims = useState('matomo_dims').value;
+      if (dims?.school) _paq.push(['setCustomDimension', dims.school, this.school.name]);
+      if (dims?.grade) _paq.push(['setCustomDimension', dims.grade, grade_name || '']);
+      if (dims?.group) _paq.push(['setCustomDimension', dims.group, group_name || '']);
+      if (dims?.pupil_id) _paq.push(['setCustomDimension', dims.pupil_id, '']);
+      _paq.push(['trackPageView']);
+      _paq.push(['trackEvent', 'Auth', 'Login', 'Group']);
     },
   },
 

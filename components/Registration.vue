@@ -51,7 +51,7 @@
       <!-- table -->
       <DataTable
           v-model:filters="filters"
-          :globalFilterFields="['name', 'username', 'teacher_id', 'school_id', 'pupil_id']"
+          :globalFilterFields="['name', 'username', 'teacher_id', 'school_id']"
           :row-class="rowClass"
           :rows="5"
           :value="tableData"
@@ -521,6 +521,13 @@ export default defineComponent({
               label          : "class"
             },
 
+            //group name.
+            {
+              field: "group",
+              name : "group",
+              label: "group"
+            },
+
             //parent school.
             {
               field          : "school",
@@ -643,6 +650,68 @@ export default defineComponent({
             {
               field  : 'details',
               name   : 'details',
+              "class": "col-12",
+              no_tbl : 1
+            },
+          ],
+          data  : []
+        },
+
+        //pupils.
+        {
+          active: {
+            id: null
+          },
+          parent: "school",
+          icon  : "pi pi-users",
+          name  : "pupils",
+          label : "pupils",
+          props : [
+            //school.
+            {
+              field          : "school",
+              name           : "school",
+              parent_relation: "schools",
+              "class"        : "col-12",
+              no_tbl         : 1
+            },
+
+            //class/group.
+            {
+              field          : "class",
+              name           : "class",
+              single_relation: "classes",
+              label          : "class",
+              "class"        : "col-12"
+            },
+
+            //pupil name.
+            {
+              field: "name",
+              name : "name",
+              label: "name"
+            },
+
+            //age.
+            {
+              field: "age",
+              name : "age",
+              label: "age",
+              type : "number"
+            },
+
+            //gender.
+            {
+              field  : "gender",
+              name   : "gender",
+              label  : "gender",
+              options: ["male", "female"]
+            },
+
+            //pupil details.
+            {
+              field  : "details",
+              name   : "details",
               "class": "col-12",
               no_tbl : 1
             },
@@ -941,6 +1010,13 @@ export default defineComponent({
 
     //get class name
     getClassName(class_type_id) {
+      const class_item = this.getItemByID('classes', class_type_id);
+      if (class_item) {
+        const class_type = this.getItemByID('class_types', class_item.name);
+        const base_name  = class_type ? class_type.name : class_item.name;
+        return class_item.group ? `${base_name} - ${class_item.group}` : base_name;
+      }
+
       const class_type = this.getItemByID('class_types', class_type_id);
       if (class_type) return class_type.name;
     },
@@ -978,8 +1054,8 @@ export default defineComponent({
 
           //class type exists.
           if (class_type) return {
-            name: class_type.name,
-            id  : class_type.id
+            name: class_.group ? `${class_type.name} - ${class_.group}` : class_type.name,
+            id  : class_.id
           }
         });
 
@@ -1037,6 +1113,10 @@ export default defineComponent({
     async createItem() {
       //validate required props.
       if (!this.entity.active.name && (!this.entity.active.username || !this.entity.active.password)) return;
+      if (this.entity.name === 'classes' && !this.entity.active.group) {
+        this.notify('Insert Error', 'Group is required for classes', 'warn');
+        return;
+      }
 
       //insert item.
       try {
@@ -1265,7 +1345,7 @@ export default defineComponent({
     await this.loadItems();
 
     //background fetch.
-    for (const entity_name of ['class_types', 'regions', 'admins', 'classes', 'teachers']) {
+    for (const entity_name of ['class_types', 'regions', 'admins', 'classes', 'teachers', 'pupils']) {
       this.getEntityByName(entity_name).data = await this.loadItems(entity_name);
 
       //classes entity.

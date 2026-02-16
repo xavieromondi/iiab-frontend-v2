@@ -223,6 +223,18 @@ export default defineComponent({
 
   methods: {
 /////////////////////////////////// FILE CONTROLS.
+    //update url query.
+    updateUrl(params) {
+      if (!this.$router || !this.$route) return;
+      const query = {...this.$route.query};
+      Object.keys(params).forEach(key => {
+        const val = params[key];
+        if (val === null || val === undefined || val === '') delete query[key];
+        else query[key] = val;
+      });
+      this.$router.replace({query});
+    },
+
     //load files.
     async getFiles() {
       //reset UI.
@@ -403,6 +415,7 @@ export default defineComponent({
   mounted() {
     //fetch files.
     this.videos = this.getUSBData();
+    this.updateUrl({provider: 'local', grade: null, subject: null, link: null});
   }
 })
 </script>

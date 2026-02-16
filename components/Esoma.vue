@@ -74,6 +74,18 @@ export default defineComponent({
   },
 
   methods: {
+    //update url query.
+    updateUrl(params) {
+      if (!this.$router || !this.$route) return;
+      const query = {...this.$route.query};
+      Object.keys(params).forEach(key => {
+        const val = params[key];
+        if (val === null || val === undefined || val === '') delete query[key];
+        else query[key] = val;
+      });
+      this.$router.replace({query});
+    },
+
     //view full screen.
     viewFullScreen() {
       this.full_screen = true;
@@ -95,6 +107,10 @@ export default defineComponent({
       this.full_screen = false;
       document.exitFullscreen();
     },
+  },
+
+  mounted() {
+    this.updateUrl({provider: 'esoma', grade: null, subject: null, link: null});
   }
 });
 </script>

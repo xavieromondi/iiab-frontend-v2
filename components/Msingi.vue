@@ -153,6 +153,18 @@ export default defineComponent({
 
   methods: {
 //////////////////////////////////////////// MSINGI PACK CONTROLS.
+    //update url query.
+    updateUrl(params) {
+      if (!this.$router || !this.$route) return;
+      const query = {...this.$route.query};
+      Object.keys(params).forEach(key => {
+        const val = params[key];
+        if (val === null || val === undefined || val === '') delete query[key];
+        else query[key] = val;
+      });
+      this.$router.replace({query});
+    },
+
 
     //load msingi_pack subject content.
     async loadMsingiSubject(subject) {
@@ -165,6 +177,12 @@ export default defineComponent({
       //set active subject.
       this.is_loading = true;
       this.subject    = subject;
+      this.updateUrl({
+        provider: 'msingi',
+        grade   : this.mp_grade,
+        subject : subject.title,
+        link    : subject.link
+      });
       await useUpdateSubjectSession(subject.title);
     },
 
@@ -217,6 +235,12 @@ export default defineComponent({
     viewGradeSubjects(grade, content_) {
       this.msingi_grade_subjects = content_.subjects;
       this.mp_grade              = grade;
+      this.updateUrl({
+        provider: 'msingi',
+        grade   : grade,
+        subject : null,
+        link    : null
+      });
     },
 
     //close grade view.
@@ -229,6 +253,12 @@ export default defineComponent({
       this.msingi_grade_subjects = null;
       this.mp_grade              = null;
       this.full_screen           = false;
+      this.updateUrl({
+        provider: 'msingi',
+        grade   : null,
+        subject : null,
+        link    : null
+      });
     },
 
     //close subject.
@@ -241,6 +271,12 @@ export default defineComponent({
       //close subject.
       this.subject     = null;
       this.full_screen = false;
+      this.updateUrl({
+        provider: 'msingi',
+        grade   : this.mp_grade,
+        subject : null,
+        link    : null
+      });
     },
 
 //////////////////////////////////////////// MSINGI PACK CONTROLS.
@@ -302,6 +338,17 @@ export default defineComponent({
   async mounted() {
     //fetch Msingi pack.
     this.msingi_grade_list = await this.fetchMsingiPackContent();
+
+    const q = this.$route?.query || {};
+    if (q.provider === 'msingi' && q.grade && this.msingi_grade_list && this.msingi_grade_list[q.grade]) {
+      const content_ = this.msingi_grade_list[q.grade];
+      this.viewGradeSubjects(q.grade, content_);
+
+      if (q.link || q.subject) {
+        const subject_ = (content_.subjects || []).find(s => (q.link && s.link === q.link) || (q.subject && s.title === q.subject));
+        if (subject_) await this.loadMsingiSubject(subject_);
+      }
+    }
   }
 });
 </script>
